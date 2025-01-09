@@ -1,0 +1,13 @@
+doit_path: E:\Codes\balance-exo-sim
+opensim_home: D:\OpenSim\OpenSim 4.5
+R_exec_path: D:\Program Files\R\R-4.2.1\bin
+motion_capture_data_path: E:\Codes\balance-exo-sim\motion_capture_data
+results_path: E:\Codes\balance-exo-sim\results
+analysis_path: E:\Codes\balance-exo-sim\analysis
+validate_path: E:\Codes\balance-exo-sim\validate
+statistics_path: E:\Codes\balance-exo-sim\statistics
+figures_path: E:\Codes\balance-exo-sim\figures
+unperturbed_initial_guess: False
+skip_tracking_solve: True
+skip_timestepping_solve: False
+enable_perturbed_plotting_tasks: False
