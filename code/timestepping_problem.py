@@ -22,6 +22,9 @@ forceNamesLeftFoot = ['forceset/contactHeel_l',
                       'forceset/contactMedialMidfoot_l']
 
 class TimeSteppingConfig:
+    """
+    时间步进配置类。
+    """
     def __init__(self, name, legend_entry, color, weights, 
                  unperturbed_fpath=None, 
                  ankle_torque_perturbation=False,
@@ -30,6 +33,16 @@ class TimeSteppingConfig:
                  subtalar_peak_torque=0,
                  lumbar_stiffness=1.0,
                  use_coordinate_actuators=False):
+        """
+        初始化时间步进配置。
+
+        参数:
+        name: 配置名称。
+        legend_entry: 配置的图例条目。
+        color: 配置的颜色。
+        weights: 配置的权重。
+        unperturbed_fpath: 未扰动轨迹的路径。
+        """
 
         # Base arguments
         self.name = name
@@ -52,11 +65,37 @@ class TimeSteppingConfig:
         self.use_coordinate_actuators = use_coordinate_actuators
 
 class TimeSteppingProblem(Result):
+    """
+    时间步进问题类。
+    """
     def __init__(self, root_dir, result_fpath, model_fpath, coordinates_fpath, 
             coordinates_std_fpath, extloads_fpath, grf_fpath, emg_fpath,
             muscle_mechanics_fpath, initial_time, final_time, cycles, 
             right_strikes, left_strikes, mesh_interval, walking_speed, configs,
             skip_solve=False):
+        """
+        初始化时间步进问题。
+
+        参数:
+        root_dir: 根目录。
+        result_fpath: 结果路径。
+        model_fpath: 模型路径。
+        coordinates_fpath: 坐标路径。
+        coordinates_std_fpath: 坐标标准路径。
+        extloads_fpath: 外力路径。
+        grf_fpath: 地面反作用力路径。
+        emg_fpath: 肌电图路径。
+        muscle_mechanics_fpath: 肌肉力路径。
+        initial_time: 初始时间。
+        final_time: 最终时间。
+        cycles: 周期数。
+        right_strikes: 右脚的步数。
+        left_strikes: 左脚的步数。
+        mesh_interval: 网格间隔。
+        walking_speed: 行走速度。
+        configs: 配置列表。
+        skip_solve: 是否跳过求解。
+        """
         super(TimeSteppingProblem, self).__init__()
         self.root_dir = root_dir
         self.result_fpath = result_fpath
@@ -81,11 +120,26 @@ class TimeSteppingProblem(Result):
         self.implicit_tendon_dynamics = False
 
     def get_perturbation_torque_path(self):
+        """
+        获取扰动扭矩路径。
+
+        返回:
+        扰动扭矩路径。
+        """
         return os.path.join(self.result_fpath,
                     f'ankle_perturbation_curve.sto')
 
     def create_trajectory_from_tables(self, states, controls):
+        """
+        从状态和控制表创建轨迹。
 
+        参数:
+        states: 状态表。
+        controls: 控制表。
+
+        返回:
+        创建的轨迹。
+        """
         # Assemble the states matrix
         statesMatrix = osim.Matrix(states.getNumRows(), states.getNumColumns())
         for irow in np.arange(states.getNumRows()):
@@ -126,6 +180,15 @@ class TimeSteppingProblem(Result):
 
 
     def create_model_processor(self, config):
+        """
+        创建模型处理器。
+
+        参数:
+        config: 配置。
+
+        返回:
+        创建的模型处理器。
+        """
 
         osim.Logger.setLevelString('error')
 
@@ -255,24 +318,35 @@ class TimeSteppingProblem(Result):
         return modelProcessor
 
     def run_timestepping_problem(self, config):
+        """
+        运行时间步进问题。
+
+        参数:
+        config: 配置。
+        """
 
         # Create the model
+        # 创建模型
         # ----------------
         modelProcessor = self.create_model_processor(config)        
         model = modelProcessor.process()
         model.initSystem()
 
         # Load the unperturbed walking trajectory
+        # 加载外骨骼辅助的行走轨迹
         # ---------------------------------------
         trajectory = osim.MocoTrajectory(config.unperturbed_fpath)
 
         if config.use_coordinate_actuators:
+            """
+            如果使用坐标执行器，则从轨迹中导出控制表，并移除不需要的列。
+            """
             controls = trajectory.exportToControlsTable()
             controlLabels = controls.getColumnLabels()
             for label in controlLabels:
                 if not '/forceset/torque_' in label:
                     controls.removeColumn(label)
-
+            # 导出状态表，并移除不需要的列
             states = trajectory.exportToStatesTable()
             stateLabels = states.getColumnLabels()
             for label in stateLabels:
@@ -283,6 +357,7 @@ class TimeSteppingProblem(Result):
                       ('/activation' in label)):
                     states.removeColumn(label)
 
+            # 加载正常行走无扰动的肌肉力矩表
             unperturbed_dir = os.path.split(config.unperturbed_fpath)[0]
             muscleMoments = osim.TimeSeriesTable(
                 os.path.join(unperturbed_dir, 'muscle_moments_unperturbed.sto'))
@@ -293,6 +368,7 @@ class TimeSteppingProblem(Result):
             trajectory = self.create_trajectory_from_tables(states, controls)
 
         # Trim the trajectory to the ankle perturbation window
+        # 截断轨迹到踝关节辅助的时间窗口
         # ----------------------------------------------------
         unperturbedTable = osim.TimeSeriesTable(config.unperturbed_fpath)
         initial_index = unperturbedTable.getNearestRowIndexForTime(
@@ -302,16 +378,19 @@ class TimeSteppingProblem(Result):
         trajectory.trimToIndices(int(initial_index), int(final_index))
 
         # Insert the torque perturbation control to the trajectory
+        # 将辅助的扭矩控制插入到轨迹中
         # -------------------------------------------------------
         perturbTable = osim.TimeSeriesTable(
             self.get_perturbation_torque_path())
         trajectory.insertControlsTrajectory(perturbTable)
 
         # Add the PrescribedController to the model
+        # 将控制器添加到模型中
         # -----------------------------------------
         osim.prescribeControlsToModel(trajectory, model, 'PiecewiseLinearFunction')
 
         # Add states reporter to the model.
+        # 将状态报告器添加到模型中
         # ---------------------------------
         statesRep = osim.StatesTrajectoryReporter()
         statesRep.setName('states_reporter')
@@ -319,8 +398,10 @@ class TimeSteppingProblem(Result):
         model.addComponent(statesRep)
 
         # Simulate!
+        # 开始模拟
         # ---------
         if not self.skip_solve:
+            # 仿真环境状态初始化
             time = trajectory.getTime()
             model.initSystem()
             manager = osim.Manager(model)
@@ -332,6 +413,7 @@ class TimeSteppingProblem(Result):
             manager.integrate(time[time.size() - 1])
 
             # Export results from states reporter to a table.
+            # 将状态报告器的结果导出到表中
             # -----------------------------------------------
             statesTrajRep = osim.StatesTrajectoryReporter().safeDownCast(
                 model.getComponent('/states_reporter')) 
@@ -339,26 +421,35 @@ class TimeSteppingProblem(Result):
             controls = trajectory.exportToControlsTable()
 
             # Convert the time-stepping trajectory to a MocoTrajectory
+            # 将时间步进轨迹转换为MocoTrajectory
             # --------------------------------------------------------
             solution = self.create_trajectory_from_tables(states, controls)
 
             # Save the perturbed trajectory to a file
+            # 将扰动后的轨迹保存到文件
             # ---------------------------------------
             solution.write(self.get_solution_path(f'{config.name}_half'))
 
         # Add the unperturbed states to the full trajectory
+        # 将正常行走的状态添加到完整轨迹中
         # -------------------------------------------------
         # Load the perturbed solution
+        # 加载扰动后的轨迹
+        # ----------------------------
         solutionTable = osim.TimeSeriesTable(
             self.get_solution_path(f'{config.name}_half'))
         solutionTime = solutionTable.getIndependentColumn()
         solutionLabels = solutionTable.getColumnLabels()
 
         # Load the unperturbed solution
+        # 加载正常行走无扰动的轨迹
+        # --------------------------------
         unperturbedTable = osim.TimeSeriesTable(config.unperturbed_fpath)
         unperturbedTime = unperturbedTable.getIndependentColumn() 
 
         # Add the torque perturbation to the solution trajectory
+        # 将辅助的扭矩控制插入到扰动后的轨迹中
+        # ------------------------------------------------------
         perturbSplines = osim.GCVSplineSet(perturbTable)
         for label in perturbTable.getColumnLabels():
             perturbSpline = perturbSplines.get(label)
@@ -379,6 +470,8 @@ class TimeSteppingProblem(Result):
         # If a label from the unperturbed trajectory isn't
         # contained in the perturbed time-stepping solution,
         # remove it
+        # 如果正常行走无扰动的轨迹中的列不在扰动后的轨迹中，则移除该列
+        # ----------------------------------------------------------------
         guessLabels = unperturbedTable.getColumnLabels()
         for label in guessLabels:
             if not label in solutionLabels:
@@ -386,6 +479,8 @@ class TimeSteppingProblem(Result):
 
         # Populate the full solution table with the unperturbed 
         # states up until the beginning of the perturbation
+        # 将正常行走无扰动的状态填充到完整解决方案表中，直到辅助开始
+        # ----------------------------------------------------------------
         fullSolutionTable = osim.TimeSeriesTable()
         for irow in np.arange(initial_index):
             fullSolutionTable.appendRow(
@@ -394,6 +489,8 @@ class TimeSteppingProblem(Result):
 
         # Append the perturbation solution rows to the full
         # solution trajectory
+        # 将扰动后的状态填充到完整解决方案表中
+        # ----------------------------------------
         for irow in np.arange(len(solutionTime)):
             solutionRow = solutionTable.getRowAtIndex(int(irow))
             solutionTime = solutionTable.getIndependentColumn()
@@ -411,6 +508,8 @@ class TimeSteppingProblem(Result):
                 solutionTime[int(irow)], rowToAppend)
 
         # Update the column labels and meta data 
+        # 更新列标签和元数据
+        # --------------------------------
         fullSolutionTable.setColumnLabels(unperturbedTable.getColumnLabels())
         keys = np.array(solutionTable.getTableMetaDataKeys())
         for key in keys:
@@ -420,11 +519,13 @@ class TimeSteppingProblem(Result):
                 solutionTable.getTableMetaDataAsString(key))    
 
         # Save the full trajectory to a file
+        # 将完整解决方案表保存到文件
         # ----------------------------------
         osim.STOFileAdapter.write(fullSolutionTable, 
             self.get_solution_path(config.name))
 
         # Compute ground reaction forces generated by the contact spheres.
+        # 计算地面反作用力
         # ----------------------------------------------------------------
         solution = osim.MocoTrajectory(self.get_solution_path(config.name)) 
         contactForces, copTable = self.create_contact_sphere_force_table(
@@ -432,6 +533,8 @@ class TimeSteppingProblem(Result):
         osim.STOFileAdapter.write(contactForces,
                 self.get_solution_path_contacts(config.name))
 
+        # 计算外骨骼辅助行走时的外力
+        # ----------------------------
         externalLoads = osim.createExternalLoadsTableForGait(model, solution,
             forceNamesRightFoot, forceNamesLeftFoot)
         # externalLoads = self.create_external_loads_table_for_gait(
@@ -441,17 +544,23 @@ class TimeSteppingProblem(Result):
                 self.get_solution_path_grfs(config.name))
 
         # Archive solution
+        # 保存解决方案
         # ----------------
         solution.write(self.get_solution_archive_path(config.name))
         osim.STOFileAdapter.write(externalLoads,
                 self.get_solution_archive_path_grfs(config.name))
 
     def generate_results(self):
+        """
+        生成结果。
+        """
         for config in self.configs:
             self.run_timestepping_problem(config)
    
     def report_results(self):
-
+        """
+        报告结果。
+        """
         # Store a list of models
         # ----------------------
         models = list()

@@ -1,5 +1,16 @@
 
 def create_contact_sphere_force_table(self, model, statesTrajectory):
+    """
+    创建接触球体力表的函数。
+
+    参数:
+    self: 当前类的实例。
+    model: 模型对象，用于初始化系统和获取组件。
+    statesTrajectory: 状态轨迹对象，包含多个状态信息。
+
+    返回:
+    externalForcesTable: 一个时间序列表，包含接触球体的力和扭矩信息。
+    """
 
     model.initSystem()
     externalForcesTable = osim.TimeSeriesTableVec3()
@@ -80,6 +91,18 @@ def create_contact_sphere_force_table(self, model, statesTrajectory):
     
 def create_external_loads_table_for_gait(model,
         statesTrajectory, forcePathsRightFoot, forcePathsLeftFoot):
+    """
+    创建外力表的函数。
+
+    参数:
+    model: 模型对象，用于初始化系统和获取组件。
+    statesTrajectory: 状态轨迹对象，包含多个状态信息。
+    forcePathsRightFoot: 右脚的力路径。
+    forcePathsLeftFoot: 左脚的力路径。
+
+    返回:
+    externalForcesTable: 一个时间序列表，包含外力信息。
+    """
     model.initSystem()
     externalForcesTable = osim.TimeSeriesTableVec3()
     numStates = statesTrajectory.getSize() 

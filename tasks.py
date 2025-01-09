@@ -19,6 +19,7 @@ from matplotlib.ticker import AutoMinorLocator
 from tracking_problem import TrackingProblem, TrackingConfig
 from timestepping_problem import TimeSteppingProblem, TimeSteppingConfig
 
+# 设置matplotlib字体和颜色
 plt.rcParams['mathtext.fontset'] = 'cm'
 plt.rcParams['mathtext.rm'] = 'serif'
 plt.rcParams['axes.unicode_minus'] = False
@@ -31,6 +32,22 @@ colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # interval 'interval'. Optional argument 'mirror' enforces that the upper
 # and lower plot limits have the same magnitude (i.e., mirrored about zero). 
 def update_lims(data, interval, lims, mirror=False):
+    """
+    更新绘图轴的限制 'lims'，基于输入数据和所需的刻度间隔 'interval'。
+    
+    参数:
+    data : array-like
+        输入数据，用于计算新的轴限制。
+    interval : float
+        刻度间隔，用于更新限制。
+    lims : list
+        当前的轴限制，格式为 [lower_limit, upper_limit]。
+    mirror : bool, 可选
+        如果为 True，强制上下限制具有相同的幅度（即关于零对称）。
+
+    返回:
+    None
+    """
     if np.min(data) < lims[0]:
         lims[0] = interval * np.floor(np.min(data) / interval)
         if mirror: lims[1] = -lims[0]
@@ -41,6 +58,19 @@ def update_lims(data, interval, lims, mirror=False):
 # Get the ticks for an axis based on the limits 'lims' and desired
 # tick interval 'interval'.
 def get_ticks_from_lims(lims, interval):
+    """
+    根据限制 'lims' 和所需的刻度间隔 'interval' 获取轴的刻度。
+
+    参数:
+    lims : list
+        轴限制，格式为 [lower_limit, upper_limit]。
+    interval : float
+        刻度间隔。
+
+    返回:
+    ticks : array
+        计算得到的刻度值。
+    """
     N = int(np.around((lims[1] - lims[0]) / interval, decimals=3)) + 1
     ticks = np.linspace(lims[0], lims[1], N)
     return ticks
@@ -49,6 +79,22 @@ def get_ticks_from_lims(lims, interval):
 # be above the bars, and for negative values, the errorbars will be
 # below the bars.  
 def plot_errorbar(ax, x, y, yerr):
+    """
+    在条形图中添加误差条。对于正值，误差条将位于条形上方；对于负值，误差条将位于条形下方。
+
+    参数:
+    ax : matplotlib.axes.Axes
+        要绘制误差条的坐标轴。
+    x : array-like
+        x 轴数据。
+    y : array-like
+        y 轴数据。
+    yerr : array-like
+        y 轴数据的误差。
+
+    返回:
+    None
+    """
     lolims = y > 0
     uplims = y < 0
     ple, cle, ble = ax.errorbar(x, y, yerr=yerr, 
@@ -64,6 +110,22 @@ def plot_errorbar(ax, x, y, yerr):
 # errorbars will be to the right of the bars, and for negative values, 
 # the errorbars will be to the left of the bars.  
 def plot_errorbarh(ax, y, x, xerr):
+    """
+    在水平条形图中添加误差条。对于正值，误差条将位于条形右侧；对于负值，误差条将位于条形左侧。
+
+    参数:
+    ax : matplotlib.axes.Axes
+        要绘制误差条的坐标轴。
+    y : array-like
+        y 轴数据。
+    x : array-like
+        x 轴数据。
+    xerr : array-like
+        x 轴数据的误差。
+
+    返回:
+    None
+    """
     xlolims = x > 0
     xuplims = x < 0
     ple, cle, ble = ax.errorbar(x, y, xerr=xerr, 
@@ -78,6 +140,19 @@ def plot_errorbarh(ax, y, x, xerr):
 # Compute the Euclidean distance between two points in the same frame.
 # Each vector is type SimTK::Vec3.
 def compute_distance(vec1, vec2):
+    """
+    计算同一坐标系中两个点之间的欧几里得距离。
+
+    参数:
+    vec1 : array-like
+        第一个点的坐标向量。
+    vec2 : array-like
+        第二个点的坐标向量。
+
+    返回:
+    distance : float
+        两个点之间的欧几里得距离。
+    """
     x = vec1[0] - vec2[0]
     y = vec1[1] - vec2[1]
     z = vec1[2] - vec2[2]
@@ -87,6 +162,19 @@ def compute_distance(vec1, vec2):
 # Calculate whole-body angular momentum from the solution. The input model should
 # already be realized to SimTK::Stage::Velocity. 
 def calc_whole_body_angular_momentum(model, solution_fpath):
+    """
+    从解决方案中计算全身角动量。输入模型应已实现到 SimTK::Stage::Velocity。
+
+    参数:
+    model : osim.Model
+        OpenSim 模型对象。
+    solution_fpath : str
+        解决方案文件的路径。
+
+    返回:
+    result : np.ndarray
+        包含每个状态的角动量的数组，形状为 (状态数, 3)。
+    """
     solution = osim.MocoTrajectory(solution_fpath)
     states = solution.exportToStatesTrajectory(model)
     matter = model.getMatterSubsystem()
@@ -105,6 +193,17 @@ def calc_whole_body_angular_momentum(model, solution_fpath):
 # Calculate foot width based on the contact spheres in the model. The input model
 # should already have initSystem() called on it.
 def calc_foot_width(model):
+    """
+    计算模型中接触球的足宽。输入模型应已调用 initSystem()。
+
+    参数:
+    model : osim.Model
+        OpenSim 模型对象。
+
+    返回:
+    foot_width : float
+        计算得到的足宽。
+    """
     midfootLocations = list()
     for midfoot in ['medialMidfoot', 'lateralMidfoot']:
         sphere = osim.ContactSphere.safeDownCast(
@@ -130,6 +229,7 @@ def calc_foot_width(model):
 # -------------
 
 class working_directory():
+    ## 使用这个来临时运行代码，然后回到原来的工作目录
     """Use this to temporarily run code with some directory as a working
     directory and to then return to the original working directory::
 
@@ -137,17 +237,51 @@ class working_directory():
             pass
     """
     def __init__(self, path):
+        """
+        初始化工作目录类。
+
+        参数:
+        path : str
+            要临时切换到的工作目录路径。
+        """
         self.path = path
         self.original_working_dir = os.getcwd()
+
     def __enter__(self):
+        """
+        进入上下文管理器时切换到指定的工作目录。
+
+        返回:
+        None
+        """
         os.chdir(self.path)
+
     def __exit__(self, *exc_info):
+        """
+        退出上下文管理器时恢复到原始工作目录。
+
+        参数:
+        *exc_info : tuple
+            可选的异常信息，未使用。
+
+        返回:
+        None
+        """
         os.chdir(self.original_working_dir)
 
 
 class TaskApplyMarkerSetToGenericModel(osp.StudyTask):
     REGISTRY = []
+    
     def __init__(self, study):
+        """
+        初始化TaskApplyMarkerSetToGenericModel类。
+        该任务用于将标记集应用于通用模型。
+
+        参数:
+        study : Study
+            当前研究的实例，用于获取配置和路径信息。
+        """
         super(TaskApplyMarkerSetToGenericModel, self).__init__(study)
         self.name = f'{study.name}_apply_markerset_to_generic_model'
         self.model_fpath = os.path.join(study.config['results_path'],
@@ -175,6 +309,18 @@ class TaskApplyMarkerSetToGenericModel(osp.StudyTask):
                         self.apply_markerset_to_model)
 
     def apply_markerset_to_model(self, file_dep, target):
+        """
+        将标记集应用于通用模型。
+
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含模型文件和标记集文件。
+        target : list
+            目标文件路径列表，用于保存更新后的模型文件。
+
+        返回:
+        None
+        """
         model = osim.Model(file_dep[0])
         markerSet = osim.MarkerSet(file_dep[1])
 
@@ -249,6 +395,24 @@ class TaskCopyMotionCaptureData(osp.TaskCopyMotionCaptureData):
 
 
 class TaskUpdateGroundReactionLabels(osp.TrialTask):
+    """
+    任务类，用于更新地面反应力标签。
+
+    属性:
+    REGISTRY : list
+        注册的任务列表。
+
+    方法:
+    __init__(trial)
+        初始化任务，设置任务名称并添加动作。
+    
+    dispatch(file_dep, target)
+        处理文件依赖，更新地面反应力数据的标签。
+    
+    参数:
+    trial : Trial
+        当前试验的实例，用于获取实验数据路径。
+    """
     REGISTRY = []
     def __init__(self, trial):
         super(TaskUpdateGroundReactionLabels, self).__init__(trial)
@@ -259,6 +423,18 @@ class TaskUpdateGroundReactionLabels(osp.TrialTask):
                 self.dispatch)
 
     def dispatch(self, file_dep, target):
+        """
+        处理文件依赖，更新地面反应力数据的标签。
+
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含原始地面反应力数据文件。
+        target : list
+            目标文件路径列表，用于保存更新后的地面反应力数据文件。
+
+        返回:
+        None
+        """
         import re
         data = util.storage2numpy(file_dep[0])
         new_names = list()
@@ -277,7 +453,23 @@ class TaskUpdateGroundReactionLabels(osp.TrialTask):
 
 
 class TaskFilterGroundReactions(osp.TrialTask):
+    """
+    处理地面反应力数据的过滤任务类。
+
+    参数:
+    trial : Trial
+        当前试验的实例，用于获取实验数据路径。
+    sample_rate : int, 可选
+        记录的力采样率（Hz），默认为2000。
+    critically_damped_order : int, 可选
+        临界阻尼滤波器的阶数，默认为4。
+    critically_damped_cutoff_frequency : int, 可选
+        临界阻尼滤波器的截止频率，默认为20。
+    gaussian_smoothing_sigma : float, 可选
+        高斯平滑过程的平滑因子，默认为0。
+    """
     REGISTRY = []
+    
     def __init__(self, trial, sample_rate=2000,
                  critically_damped_order=4, 
                  critically_damped_cutoff_frequency=20,
@@ -307,7 +499,18 @@ class TaskFilterGroundReactions(osp.TrialTask):
             self.filter_ground_reactions)
 
     def filter_ground_reactions(self, file_dep, target):
+        """
+        过滤地面反应力数据并生成过滤后的数据文件和图像。
 
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含未过滤的地面反应力数据文件。
+        target : list
+            目标文件路径列表，用于保存过滤后的地面反应力数据文件和图像。
+
+        返回:
+        None
+        """
         grfs = osim.TimeSeriesTable(file_dep[0])
         nrow = grfs.getNumRows()
         time = grfs.getIndependentColumn()
@@ -411,13 +614,20 @@ class TaskFilterGroundReactions(osp.TrialTask):
         fig.savefig(target[1])
         pl.close()
 
-
 # Scaling
 # -------
 
 class TaskCopyModelSegmentMasses(osp.SubjectTask):
     REGISTRY = []
     def __init__(self, subject):
+        """
+        初始化 TaskCopyModelSegmentMasses 类。
+        用于将模型段的质量复制到 addbio 模型。
+        
+        参数:
+        subject : Subject
+            当前研究的受试者对象。
+        """
         super(TaskCopyModelSegmentMasses, self).__init__(subject)
         self.subject = subject
         self.study = subject.study
@@ -437,7 +647,18 @@ class TaskCopyModelSegmentMasses(osp.SubjectTask):
                         self.copy_segment_masses)
 
     def copy_segment_masses(self, file_dep, target):
-
+        """
+        复制模型段的质量到 addbio 模型。
+        
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含缩放模型和 addbio 模型文件。
+        target : list
+            目标文件路径列表，用于保存更新后的模型文件。
+        
+        返回:
+        None
+        """
         scale_model = osim.Model(file_dep[0])
         scale_model.initSystem()
 
@@ -473,6 +694,18 @@ class TaskScaleMuscleMaxIsometricForce(osp.SubjectTask):
        et al. 2015 model.
     """
     def __init__(self, subject, generic_mass=75.337, generic_height=1.6557):
+        """
+        初始化 TaskScaleMuscleMaxIsometricForce 类。
+        用于缩放肌肉最大等长力参数。
+        
+        参数:
+        subject : Subject
+            当前研究的受试者对象。
+        generic_mass : float, 可选
+            通用模型的质量，默认为 75.337。
+        generic_height : float, 可选
+            通用模型的高度，默认为 1.6557。
+        """
         super(TaskScaleMuscleMaxIsometricForce, self).__init__(subject)
         self.subject = subject
         self.name = '%s_scale_max_force' % self.subject.name
@@ -512,9 +745,20 @@ class TaskScaleMuscleMaxIsometricForce(osp.SubjectTask):
 
         Author: Chris Dembia 
         Borrowed from mrsdeviceopt GitHub repo:
-        https://github.com/chrisdembia/mrsdeviceopt          
-       """
-
+        https://github.com/chrisdembia/mrsdeviceopt    
+        """      
+        """
+        根据 Handsfield 2014 的图 5a 和 Apoorva 的肌肉属性电子表格缩放肌肉最大等长力参数。
+        
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含通用模型和受试者模型文件。
+        target : list
+            目标文件路径列表，用于保存缩放后的模型文件。
+        
+        返回:
+        None
+        """
         print("Muscle force scaling: "
               "total muscle volume and optimal fiber length.")
 
@@ -560,7 +804,25 @@ class TaskScaleMuscleMaxIsometricForce(osp.SubjectTask):
 # -------------
 
 class TaskComputeJointAngleStandardDeviations(osp.TrialTask):
+    """
+    任务类，用于计算关节角度的标准差。
+
+    属性:
+    REGISTRY : list
+        注册的任务列表。
+
+    方法:
+    __init__(trial, ik_setup_task)
+        初始化任务，设置任务名称并添加动作。
+
+    参数:
+    trial : Trial
+        当前试验的实例，用于获取实验数据路径。
+    ik_setup_task : Task
+        逆运动学设置任务，用于获取解决方案文件路径。
+    """
     REGISTRY = []
+    
     def __init__(self, trial, ik_setup_task):
         super(TaskComputeJointAngleStandardDeviations, self).__init__(trial)
         self.name = trial.id + '_joint_angle_standard_deviations'
@@ -573,6 +835,18 @@ class TaskComputeJointAngleStandardDeviations(osp.TrialTask):
                         self.compute_joint_angle_standard_deviations)
 
     def compute_joint_angle_standard_deviations(self, file_dep, target):
+        """
+        计算关节角度的标准差并将结果保存为CSV文件。
+
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含逆运动学解决方案文件。
+        target : list
+            目标文件路径列表，用于保存计算得到的关节角度标准差数据。
+
+        返回:
+        None
+        """
         
         kinematics = osim.TimeSeriesTable(file_dep[0])
         labels = kinematics.getColumnLabels()
@@ -604,7 +878,27 @@ class TaskComputeJointAngleStandardDeviations(osp.TrialTask):
 
 class TaskTrimTrackingData(osp.TrialTask):
     REGISTRY = []
+    
     def __init__(self, trial, ik_setup_task, id_setup_task, initial_time, final_time):
+        """
+        初始化TaskTrimTrackingData类。
+        该任务用于修剪跟踪数据，以便仅保留指定时间范围内的数据。
+
+        参数:
+        trial : Trial
+            当前试验的实例，用于获取实验数据路径。
+        ik_setup_task : Task
+            逆运动学设置任务，用于获取解决方案文件路径。
+        id_setup_task : Task
+            身体识别设置任务，用于获取外部负载结果文件路径。
+        initial_time : float
+            修剪数据的起始时间。
+        final_time : float
+            修剪数据的结束时间。
+
+        返回:
+        None
+        """
         super(TaskTrimTrackingData, self).__init__(trial)
         self.name = trial.id + '_trim_tracking_data'
         self.trial = trial
@@ -633,7 +927,18 @@ class TaskTrimTrackingData(osp.TrialTask):
                         self.trim_tracking_data)
 
     def trim_tracking_data(self, file_dep, target):
-        
+        """
+        修剪跟踪数据并将结果保存到目标文件。
+
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含逆运动学解决方案文件、外部负载文件和地面反应力文件。
+        target : list
+            目标文件路径列表，用于保存修剪后的跟踪数据。
+
+        返回:
+        None
+        """
         self.copy_file([file_dep[1]], [target[1]])
 
         sto = osim.STOFileAdapter()
@@ -650,6 +955,49 @@ class TaskTrimTrackingData(osp.TrialTask):
 # -------------------
 
 class TaskMocoUnperturbedWalkingGuess(osp.TrialTask):
+    """
+    任务类，用于处理正常行走（未受扰动）的步态优化问题。
+
+    参数:
+    trial : Trial
+        当前试验的实例，用于获取实验数据和路径信息。
+    initial_time : float
+        优化开始的时间。
+    final_time : float
+        优化结束的时间。
+    mesh_interval : float, 可选
+        网格间隔，默认为0.02。
+    walking_speed : float, 可选
+        行走速度，默认为1.25。
+    constrain_average_speed : bool, 可选
+        是否约束平均速度，默认为True。
+    guess_fpath : str, 可选
+        初始猜测文件路径，默认为None。
+    constrain_initial_state : bool, 可选
+        是否约束初始状态，默认为False。
+    periodic : bool, 可选
+        是否周期性，默认为True。
+    cost_scale : float, 可选
+        代价缩放因子，默认为1.0。
+    costs_enabled : bool, 可选
+        是否启用代价，默认为True。
+    pelvis_boundary_conditions : bool, 可选
+        是否施加骨盆边界条件，默认为True。
+    reserve_strength : float, 可选
+        保留力量，默认为0。
+    implicit_multibody_dynamics : bool, 可选
+        是否使用隐式多体动力学，默认为False。
+    implicit_tendon_dynamics : bool, 可选
+        是否使用隐式肌腱动力学，默认为False。
+    create_and_insert_guess : bool, 可选
+        是否创建并插入初始猜测，默认为False。
+    convergence_tolerance : float, 可选
+        收敛容忍度，默认为1e-2。
+    constraint_tolerance : float, 可选
+        约束容忍度，默认为1e-2。
+    **kwargs : dict
+        其他可选参数。
+    """
     REGISTRY = []
     def __init__(self, trial, initial_time, final_time, mesh_interval=0.02,
                 walking_speed=1.25, constrain_average_speed=True, guess_fpath=None, 
@@ -721,7 +1069,18 @@ class TaskMocoUnperturbedWalkingGuess(osp.TrialTask):
                         self.run_tracking_problem)
 
     def run_tracking_problem(self, file_dep, target):
+        """
+        运行步态优化问题。
 
+        参数:
+        file_dep : list
+            依赖文件路径列表，包含模型文件、跟踪数据、关节角度标准差、外部负载、地面反应力和肌电数据。
+        target : list
+            目标文件路径列表，用于保存优化结果。
+
+        返回:
+        None
+        """
         weights = copy.deepcopy(self.weights)
         for weight_name in weights:
             weights[weight_name] *= self.cost_scale
@@ -774,7 +1133,36 @@ class TaskMocoUnperturbedWalkingGuess(osp.TrialTask):
 
 
 class TaskMocoUnperturbedWalking(osp.TrialTask):
+    """
+    任务类：模拟正常行走（未受扰动）任务。
+
+    参数:
+    trial : osp.Trial
+        当前试验的实例。
+    initial_time : float
+        任务开始的时间点。
+    final_time : float
+        任务结束的时间点。
+    mesh_interval : float, 可选
+        网格间隔，默认为0.02。
+    walking_speed : float, 可选
+        行走速度，默认为1.25。
+    guess_fpath : str, 可选
+        初始猜测文件路径，默认为None。
+    periodic : bool, 可选
+        是否使用周期性，默认为True。
+    lumbar_stiffness : float, 可选
+        腰椎刚度，默认为1.0。
+    create_and_insert_guess : bool, 可选
+        是否创建并插入猜测，默认为False。
+    **kwargs : 其他参数
+        其他关键字参数。
+
+    返回:
+    None
+    """
     REGISTRY = []
+    
     def __init__(self, trial, initial_time, final_time, mesh_interval=0.02,
                  walking_speed=1.25, guess_fpath=None, periodic=True,
                  lumbar_stiffness=1.0, create_and_insert_guess=False, 
@@ -841,7 +1229,18 @@ class TaskMocoUnperturbedWalking(osp.TrialTask):
                         self.run_tracking_problem)
 
     def run_tracking_problem(self, file_dep, target):
+        """
+        运行跟踪问题，生成结果并报告。
 
+        参数:
+        file_dep : list
+            依赖文件列表。
+        target : str
+            目标文件路径。
+
+        返回:
+        None
+        """
         weights = copy.deepcopy(self.weights)
         config = TrackingConfig(
             self.config_name, self.config_name, 'black', weights,
@@ -887,6 +1286,23 @@ class TaskMocoUnperturbedWalking(osp.TrialTask):
 class TaskPlotUnperturbedResults(osp.StudyTask):
     REGISTRY = []
     def __init__(self, study, subjects, masses, times):
+        """
+        初始化 TaskPlotUnperturbedResults 类的实例。
+        画出正常行走（未受扰动）结果的关节坐标、接触力、肌肉活动、质心加速度与接触力之间的关系图。
+
+        参数:
+        study : osp.Study
+            研究对象。
+        subjects : list
+            研究对象的主体列表。
+        masses : list
+            主体的质量列表。
+        times : list
+            时间点列表。
+
+        返回:
+        None
+        """
         super(TaskPlotUnperturbedResults, self).__init__(study)
         self.config_name = 'unperturbed'
         self.name = f'plot_{self.config_name}_results'
@@ -998,7 +1414,18 @@ class TaskPlotUnperturbedResults(osp.StudyTask):
                         self.compute_unperturbed_gait_landmarks)
 
     def plot_unperturbed_coordinates(self, file_dep, target): 
+        """
+        画出正常行走（未受扰动）结果的关节坐标图。
 
+        参数:
+        file_dep : list
+            依赖文件路径列表。
+        target : list
+            目标文件路径列表。
+
+        返回:
+        None
+        """
         numSubjects = len(self.subjects)
         N = 100
         pgc = np.linspace(0, 100, N)
@@ -1111,7 +1538,18 @@ class TaskPlotUnperturbedResults(osp.StudyTask):
         plt.close()
 
     def plot_unperturbed_grfs(self, file_dep, target):
+        """
+        画出正常行走（未受扰动）结果的地面反作用力图。
 
+        参数:
+        file_dep : list
+            依赖文件路径列表。
+        target : list
+            目标文件路径列表。
+
+        返回:
+        None
+        """
         numSubjects = len(self.subjects)
         N = 101
         pgc = np.linspace(0, 100, N)
@@ -1213,7 +1651,18 @@ class TaskPlotUnperturbedResults(osp.StudyTask):
         plt.close()
 
     def plot_unperturbed_muscle_activity(self, file_dep, target):
+        """
+        画出正常行走（未受扰动）结果的肌肉活动图。
 
+        参数:
+        file_dep : list
+            依赖文件路径列表。
+        target : list
+            目标文件路径列表。
+
+        返回:
+        None
+        """
         numSubjects = len(self.subjects)
         N = 200
         pgc = np.linspace(0, 100, N)
@@ -1318,7 +1767,18 @@ class TaskPlotUnperturbedResults(osp.StudyTask):
         plt.close()
 
     def plot_unperturbed_center_of_mass(self, file_dep, target):
+        """
+        画出正常行走（未受扰动）结果的质心位置图。
 
+        参数:
+        file_dep : list
+            依赖文件路径列表。
+        target : list
+            目标文件路径列表。
+
+        返回:
+        None
+        """
         numSubjects = len(self.subjects)
         N = 200
         dims = ['x', 'y', 'z']
@@ -1399,7 +1859,15 @@ class TaskPlotUnperturbedResults(osp.StudyTask):
         plt.close()
    
     def plot_unperturbed_step_widths(self, file_dep, target): 
-
+        """
+        绘制正常行走（未受扰动）步幅的宽度
+        输入参数:
+        - file_dep: 依赖的文件列表
+        - target: 目标文件列表
+        输出参数:
+        - 无
+        """
+        
         numSubjects = len(self.subjects)
         N = 100
         unperturbed_dict = dict()
@@ -1472,7 +1940,15 @@ class TaskPlotUnperturbedResults(osp.StudyTask):
             f.write(f'Step widths: {np.mean(step_widths):.2f} +/- {np.std(step_widths):.2f} m\n')
 
     def compute_unperturbed_gait_landmarks(self, file_dep, target):
-
+        """
+        计算正常行走（未受扰动）步态的地标
+        输入参数:
+        - file_dep: 依赖的文件列表
+        - target: 目标文件列表
+        输出参数:
+        - 无
+        """
+        
         # Aggregate data
         # --------------
         import collections
@@ -1566,8 +2042,28 @@ class TaskPlotUnperturbedResults(osp.StudyTask):
 
 
 class TaskComputeObjectiveContributions(osp.StudyTask):
+    """
+    计算目标函数贡献的任务类。
+
+    属性:
+    REGISTRY: 任务注册表。
+
+    方法:
+    __init__(study, subjects): 初始化任务，设置结果路径和验证路径，并准备目标函数名称列表。
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects):
+        """
+        初始化目标函数贡献计算任务。
+
+        输入参数:
+        - study: 当前研究对象，包含配置和结果路径等信息。
+        - subjects: 参与研究的受试者列表。
+
+        输出参数:
+        - 无
+        """
         super(TaskComputeObjectiveContributions, self).__init__(study)
         self.name = 'compute_objective_contributions'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -1597,7 +2093,15 @@ class TaskComputeObjectiveContributions(osp.StudyTask):
                         self.compute_objective_contributions)
 
     def compute_objective_contributions(self, file_dep, target):
-
+        """
+        计算目标函数的贡献
+        输入参数:
+        - file_dep: 依赖的文件列表
+        - target: 目标文件列表
+        输出参数:
+        - 无
+        """
+        
         import collections
         terms = collections.defaultdict(list)
         for i in np.arange(len(self.subjects)):
@@ -1642,8 +2146,28 @@ class TaskComputeObjectiveContributions(osp.StudyTask):
 # ----------
 
 class TaskValidateMarkerErrors(osp.StudyTask):
+    """
+    验证标记误差任务类。
+
+    属性:
+    REGISTRY: 任务注册表。
+
+    方法:
+    __init__(study, cond_names=['walk2']): 初始化任务，设置条件名称列表。
+    """
     REGISTRY = []
+    
     def __init__(self, study, cond_names=['walk2']):
+        """
+        初始化 TaskValidateMarkerErrors 类的实例。
+        
+        输入参数:
+        - study: 研究对象，包含实验和结果的配置信息。
+        - cond_names: 条件名称列表，默认为 ['walk2']，表示要验证的条件名称。
+        
+        输出参数:
+        - 无
+        """
         super(TaskValidateMarkerErrors, self).__init__(study)
         self.name = 'validate_marker_errors'
         self.doc = 'Compute marker errors across subjects and conditions.'
@@ -1666,6 +2190,16 @@ class TaskValidateMarkerErrors(osp.StudyTask):
                         self.validate_marker_errors)
 
     def validate_marker_errors(self, file_dep, target):
+        """
+        验证标记误差并将结果写入文件。
+        
+        输入参数:
+        - file_dep: 依赖的文件列表，包含标记误差数据文件的路径。
+        - target: 目标文件列表，包含输出结果文件的路径。
+        
+        输出参数:
+        - 无
+        """
         if not os.path.isdir(self.validate_path): 
             os.mkdir(self.validate_path)
 
@@ -1703,8 +2237,30 @@ class TaskValidateMarkerErrors(osp.StudyTask):
 
 
 class TaskValidateTrackingErrors(osp.StudyTask):
+    """
+    验证跟踪误差的任务类。
+
+    属性:
+    REGISTRY: 任务注册表。
+
+    方法:
+    __init__(study, subjects, masses, times): 初始化任务，设置结果路径和验证路径，并准备相关文件路径。
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects, masses, times):
+        """
+        初始化跟踪误差验证任务。
+
+        输入参数:
+        - study: 当前研究对象，包含配置和结果路径等信息。
+        - subjects: 参与研究的受试者列表。
+        - masses: 受试者的质量列表。
+        - times: 时间序列数据。
+
+        输出参数:
+        - 无
+        """
         super(TaskValidateTrackingErrors, self).__init__(study)
         self.config_name = 'unperturbed'
         self.name = 'validate_tracking_errors'
@@ -1753,7 +2309,16 @@ class TaskValidateTrackingErrors(osp.StudyTask):
                         self.compute_grf_errors)
 
     def compute_coordinate_errors(self, file_dep, target): 
+        """
+        计算坐标跟踪误差并将结果写入文件。
 
+        输入参数:
+        - file_dep: 依赖的文件列表，包含未扰动和实验数据文件的路径。
+        - target: 目标文件列表，包含输出结果文件的路径。
+
+        输出参数:
+        - 无
+        """
         numSubjects = len(self.subjects)
         N = 101
         coordinates = ['pelvis_tilt',
@@ -1861,7 +2426,16 @@ class TaskValidateTrackingErrors(osp.StudyTask):
                 f.write(f' -- {key}: {np.mean(value):.2f} +/- {np.std(value):.2f} [deg]\n')
 
     def compute_grf_errors(self, file_dep, target):
+        """
+        计算地面反作用力跟踪误差并将结果写入文件。
 
+        输入参数:
+        - file_dep: 依赖的文件列表，包含未扰动和实验数据文件的路径。
+        - target: 目标文件列表，包含输出结果文件的路径。
+
+        输出参数:
+        - 无
+        """
         numSubjects = len(self.subjects)
         N = 101
         forces = ['vx', 'vy', 'vz']
@@ -1920,8 +2494,28 @@ class TaskValidateTrackingErrors(osp.StudyTask):
 
 
 class TaskValidateMuscleActivity(osp.StudyTask):
+    """
+    验证肌肉活动任务类。
+
+    属性:
+    REGISTRY: 任务注册表。
+
+    方法:
+    __init__(study, subjects): 初始化任务，设置结果路径和验证路径，并准备肌电图名称列表。
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects):
+        """
+        初始化 TaskValidateMuscleActivity 类的实例。
+
+        输入参数:
+        - study: 研究对象，包含实验和结果的配置信息。
+        - subjects: 参与研究的受试者列表。
+
+        输出参数:
+        - 无
+        """
         super(TaskValidateMuscleActivity, self).__init__(study)
         self.name = 'validate_muscle_activity'
         self.doc = 'Plot muscle activity from simulation against EMG data.'
@@ -1950,8 +2544,28 @@ class TaskValidateMuscleActivity(osp.StudyTask):
                         self.validate_muscle_activity)
 
     def validate_muscle_activity(self, file_dep, target):
+        """
+        验证肌肉活动并将结果写入文件。
+
+        输入参数:
+        - file_dep: 依赖的文件列表，包含肌电图和解决方案文件的路径。
+        - target: 目标文件列表，包含输出结果文件的路径。
+
+        输出参数:
+        - 无
+        """
 
         def calc_rms_error(vec1, vec2):
+            """
+            计算均方根误差（RMS）。
+
+            输入参数:
+            - vec1: 第一个向量。
+            - vec2: 第二个向量。
+
+            输出参数:
+            - 返回计算得到的均方根误差。
+            """
             N = len(vec1)
             errors = vec1 - vec2
             sq_errors = np.square(errors)
@@ -1982,6 +2596,15 @@ class TaskValidateMuscleActivity(osp.StudyTask):
             pgc = np.linspace(0, 100, 201)
 
             def min_index(vals):
+                """
+                找到最小值的索引。
+
+                输入参数:
+                - vals: 输入值列表。
+
+                输出参数:
+                - 返回最小值的索引。
+                """
                 idx, val = min(enumerate(vals), key=lambda p: p[1])
                 return idx
 
@@ -2080,8 +2703,31 @@ class TaskValidateMuscleActivity(osp.StudyTask):
 
 
 class TaskValidateAccelerationsVersusGRFs(osp.StudyTask):
+    """
+    验证加速度与地面反作用力（GRFs）之间的关系。
+
+    输入参数:
+    - study: 研究对象，包含配置和数据。
+    - subjects: 参与研究的受试者列表。
+    - times: 时间点列表，用于分析。
+
+    输出参数:
+    - 无
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化 TaskValidateAccelerationsVersusGRFs 类的实例。
+
+        输入参数:
+        - study: 研究对象，包含配置和数据。
+        - subjects: 参与研究的受试者列表。
+        - times: 时间点列表，用于分析。
+
+        输出参数:
+        - 无
+        """
         super(TaskValidateAccelerationsVersusGRFs, self).__init__(study)
         self.name = f'validate_accelerations_versus_grfs'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -2178,8 +2824,16 @@ class TaskValidateAccelerationsVersusGRFs(osp.StudyTask):
                         self.plot_instantaneous_com)
 
     def plot_instantaneous_com(self, file_dep, target):
+        """
+        绘制瞬时质心（COM）与地面反作用力（GRF）之间的关系。
 
+        输入参数:
+        - file_dep: 依赖的文件列表。
+        - target: 目标文件列表，用于保存结果。
 
+        输出参数:
+        - 无
+        """
         # Aggregate data
         # --------------
         import collections
@@ -2304,6 +2958,15 @@ class TaskValidateAccelerationsVersusGRFs(osp.StudyTask):
         # Calculate differences
         # ---------------------
         def calc_rms_error(errors):
+            """
+            计算均方根误差（RMS）。
+
+            输入参数:
+            - errors: 误差数组。
+
+            输出参数:
+            - 返回计算得到的均方根误差。
+            """
             N = len(errors)
             sq_errors = np.square(errors)
             sumsq_errors = np.sum(sq_errors)
@@ -2342,8 +3005,31 @@ class TaskValidateAccelerationsVersusGRFs(osp.StudyTask):
 
 
 class TaskValidateAccelerationsVersusVelocitiess(osp.StudyTask):
+    """
+    任务类：验证加速度与速度之间的关系。
+
+    输入参数:
+    - study: 研究对象，包含配置和结果路径等信息。
+    - subjects: 参与研究的对象列表。
+    - times: 时间点列表，用于分析。
+
+    输出参数:
+    - 无
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化任务，设置路径和参数。
+
+        输入参数:
+        - study: 研究对象，包含配置和结果路径等信息。
+        - subjects: 参与研究的对象列表。
+        - times: 时间点列表，用于分析。
+
+        输出参数:
+        - 无
+        """
         super(TaskValidateAccelerationsVersusVelocitiess, self).__init__(study)
         self.name = f'validate_accelerations_versus_velocities'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -2451,8 +3137,16 @@ class TaskValidateAccelerationsVersusVelocitiess(osp.StudyTask):
                         self.plot_instantaneous_com)
 
     def plot_instantaneous_com(self, file_dep, target):
+        """
+        绘制瞬时质心数据。
 
+        输入参数:
+        - file_dep: 依赖文件列表。
+        - target: 目标文件路径。
 
+        输出参数:
+        - 无
+        """
         # Aggregate data
         # --------------
         import collections
@@ -2641,13 +3335,35 @@ class TaskValidateAccelerationsVersusVelocitiess(osp.StudyTask):
 # -----------------
 
 class TaskMocoPerturbedWalking(osp.TrialTask):
+    """
+    任务类：处理外骨骼辅助的步态模拟。
+
+    输入参数:
+    - trial: 当前试验的实例。
+    - initial_time: 模拟的初始时间。
+    - final_time: 模拟的结束时间。
+    - right_strikes: 右脚的着地时间点。
+    - left_strikes: 左脚的着地时间点。
+    - walking_speed: 行走速度，默认为1.25。
+    - side: 侧别，默认为右侧。
+    - torque_parameters: 扭矩参数列表，包含四个值，默认为[0.5, 0.5, 0.25, 0.1]。
+    - subtalar_torque_perturbation: 是否施加副踝扭矩扰动，默认为False。
+    - subtalar_peak_torque: 副踝扭矩的峰值，默认为0。
+    - lumbar_stiffness: 腰椎刚度，默认为1.0。
+    - use_coordinate_actuators: 是否使用坐标驱动器，默认为False。
+
+    输出参数:
+    - 无
+    """
     REGISTRY = []
+    
     def __init__(self, trial, initial_time, final_time, right_strikes, 
                  left_strikes, walking_speed=1.25, side='right', 
                  torque_parameters=[0.5, 0.5, 0.25, 0.1],
                  subtalar_torque_perturbation=False, subtalar_peak_torque=0,
                  lumbar_stiffness=1.0, use_coordinate_actuators=False):
         super(TaskMocoPerturbedWalking, self).__init__(trial)
+        # 处理扭矩参数并生成配置名称
         torque = int(round(100*torque_parameters[0]))
         time = int(round(100*torque_parameters[1]))
         rise = int(round(100*torque_parameters[2]))
@@ -2749,6 +3465,16 @@ class TaskMocoPerturbedWalking(osp.TrialTask):
                         self.run_timestepping_problem)
 
     def copy_experiment_states(self, file_dep, target):
+        """
+        复制实验状态文件。
+
+        输入参数:
+        - file_dep: 依赖文件列表。
+        - target: 目标文件路径。
+
+        输出参数:
+        - 无
+        """
         shutil.copyfile(
             os.path.join(self.unperturbed_result_fpath, 
                 f'{self.unperturbed_name}_experiment_states.sto'),
@@ -2760,9 +3486,17 @@ class TaskMocoPerturbedWalking(osp.TrialTask):
             os.path.join(self.result_fpath, 
                 f'{self.config_name}_experiment_states.sto'))
 
-
     def run_timestepping_problem(self, file_dep, target):
+        """
+        运行时间步进问题。
 
+        输入参数:
+        - file_dep: 依赖文件列表。
+        - target: 目标文件路径。
+
+        输出参数:
+        - 无
+        """
         config = TimeSteppingConfig(
             self.config_name, self.config_name, 'black', self.weights,
             unperturbed_fpath=file_dep[7],
@@ -2803,8 +3537,31 @@ class TaskMocoPerturbedWalking(osp.TrialTask):
 
 
 class TaskMocoPerturbedWalkingPost(osp.TrialTask):
+    """
+    任务类：处理外骨骼辅助的步态仿真后处理。
+
+    输入参数:
+    - trial: 当前试验的实例。
+    - generate_task: 生成的任务实例。
+    - kwargs: 其他可选参数。
+
+    输出参数:
+    - 无
+    """
     REGISTRY = []
+    
     def __init__(self, trial, generate_task, **kwargs):
+        """
+        初始化任务，设置路径和参数。
+
+        输入参数:
+        - trial: 当前试验的实例。
+        - generate_task: 生成的任务实例。
+        - kwargs: 其他可选参数。
+
+        输出参数:
+        - 无
+        """
         super(TaskMocoPerturbedWalkingPost, self).__init__(trial)
         self.name = f'{generate_task.name}_post'
         self.weights = trial.study.weights
@@ -2855,7 +3612,16 @@ class TaskMocoPerturbedWalkingPost(osp.TrialTask):
                         self.plot_timestepping_results)
 
     def copy_experiment_states(self, file_dep, target):
+        """
+        复制实验状态以便与外骨骼辅助仿真解决方案进行比较。
 
+        输入参数:
+        - file_dep: 依赖文件列表。
+        - target: 目标文件路径。
+
+        输出参数:
+        - 无
+        """
         # Copy over unperturbed solution so we can plot against the
         # perturbed solution
         shutil.copyfile(
@@ -2871,7 +3637,16 @@ class TaskMocoPerturbedWalkingPost(osp.TrialTask):
 
 
     def plot_timestepping_results(self, file_dep, target):
+        """
+        绘制时间步进结果。
 
+        输入参数:
+        - file_dep: 依赖文件列表。
+        - target: 目标文件路径。
+
+        输出参数:
+        - 无
+        """
         configs = list()
         config = TimeSteppingConfig(
             self.unperturbed_name, self.unperturbed_name, 'black', self.weights,
@@ -2918,8 +3693,33 @@ class TaskMocoPerturbedWalkingPost(osp.TrialTask):
 
 
 class TaskCreatePerturbedVisualization(osp.StudyTask):
+    """
+    任务类：创建外骨骼辅助仿真可视化。
+
+    输入参数:
+    - study: 研究对象，包含配置和结果路径等信息。
+    - subjects: 参与研究的对象列表。
+    - time: 时间点，用于可视化。
+    - torques: 扭矩列表，用于扰动。
+
+    输出参数:
+    - 无
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects, time, torques):
+        """
+        初始化 TaskCreatePerturbedVisualization 类的实例。
+
+        输入参数:
+        - study: 研究对象，包含配置和结果路径等信息。
+        - subjects: 参与研究的对象列表。
+        - time: 时间点，用于可视化。
+        - torques: 扭矩列表，用于外骨骼辅助。
+
+        输出参数:
+        - 无
+        """
         super(TaskCreatePerturbedVisualization, self).__init__(study)
         self.name = f'create_perturbed_visualization_time{time}'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -2971,6 +3771,16 @@ class TaskCreatePerturbedVisualization(osp.StudyTask):
                         self.create_perturbed_visualization)
 
     def create_perturbed_visualization(self, file_dep, target):
+        """
+        创建外骨骼辅助仿真可视化。
+
+        输入参数:
+        - file_dep: 依赖文件列表。
+        - target: 目标文件路径。
+
+        输出参数:
+        - 无
+        """
         numSubjects = len(self.subjects)
         numTorques = len(self.torques)
         numCond = numSubjects*numTorques
@@ -3027,7 +3837,16 @@ class TaskCreatePerturbedVisualization(osp.StudyTask):
 
 class TaskPlotMethodsFigure(osp.StudyTask):
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化 TaskPlotMethodsFigure 类。
+
+        参数:
+        study (osp.Study): 包含配置和参数的研究对象。
+        subjects (list): 分析的受试者列表。
+        times (list): 分析的时间点列表。
+        """
         super(TaskPlotMethodsFigure, self).__init__(study)
         self.name = 'plot_methods_figure'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -3082,7 +3901,13 @@ class TaskPlotMethodsFigure(osp.StudyTask):
                         self.plot_perturbation_times_axis)
 
     def plot_methods_figure(self, file_dep, target):
+        """
+        绘制方法图，包括扰动扭矩和质心数据。
 
+        参数:
+        file_dep (list): 绘图的文件依赖列表。
+        target (list): 保存绘图的目标文件路径列表。
+        """
         # Initialize figures
         # ------------------
         import matplotlib.gridspec as gridspec
@@ -3095,6 +3920,15 @@ class TaskPlotMethodsFigure(osp.StudyTask):
         # Arrowy helper functions
         # -----------------------
         def set_arrow_patch_vertical(ax, x, y1, y2):
+            """
+            在指定的轴上添加垂直箭头。
+
+            参数:
+            ax (matplotlib.axes.Axes): 要添加箭头的轴。
+            x (float): 箭头的 x 坐标。
+            y1 (float): 箭头的起始 y 坐标。
+            y2 (float): 箭头的结束 y 坐标。
+            """
             arrowstyle = patches.ArrowStyle.CurveAB(head_length=0.4, 
                 head_width=0.15)
             lw = 1.0
@@ -3105,6 +3939,15 @@ class TaskPlotMethodsFigure(osp.StudyTask):
             ax.add_patch(arrow)
 
         def set_arrow_patch_horizontal(ax, y, x1, x2):
+            """
+            在指定的轴上添加水平箭头。
+
+            参数:
+            ax (matplotlib.axes.Axes): 要添加箭头的轴。
+            y (float): 箭头的 y 坐标。
+            x1 (float): 箭头的起始 x 坐标。
+            x2 (float): 箭头的结束 x 坐标。
+            """
             arrowstyle = patches.ArrowStyle.CurveAB(head_length=0.4, 
                 head_width=0.15)
             lw = 0.5
@@ -3280,7 +4123,13 @@ class TaskPlotMethodsFigure(osp.StudyTask):
         plt.close()
 
     def plot_perturbation_times_axis(self, file_dep, target):
+        """
+        绘制扰动时间轴。
 
+        参数:
+        file_dep (list): 绘图的文件依赖列表。
+        target (list): 保存绘图的目标文件路径列表。
+        """
         fig = plt.figure(figsize=(5, 1))
         ax = fig.add_subplot(111)
         ax.set_xticks(np.arange(len(self.times)))
@@ -3306,7 +4155,16 @@ class TaskPlotMethodsFigure(osp.StudyTask):
 
 class TaskCreateCenterOfMassStatisticsTables(osp.StudyTask):
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化 TaskCreateCenterOfMassStatisticsTables 类。
+
+        参数:
+        study (Study): 研究对象，包含实验的配置信息。
+        subjects (list): 参与实验的受试者列表。
+        times (list): 关心的时间点列表。
+        """
         super(TaskCreateCenterOfMassStatisticsTables, self).__init__(study)
         self.name = f'create_center_of_mass_statistics_tables'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -3414,7 +4272,13 @@ class TaskCreateCenterOfMassStatisticsTables(osp.StudyTask):
         self.add_action(deps, targets, self.create_com_stats_table)
 
     def create_com_stats_table(self, file_dep, target):
+        """
+        创建质量中心统计表。
 
+        参数:
+        file_dep (list): 依赖的文件列表。
+        target (list): 目标文件列表，用于保存统计结果。
+        """
         # Aggregate data
         # --------------
         import collections
@@ -3656,9 +4520,38 @@ class TaskCreateCenterOfMassStatisticsTables(osp.StudyTask):
                     df_list[index].to_csv(f, line_terminator='\n')
 
 
+
 class TaskCreateCenterOfPressureStatisticsTables(osp.StudyTask):
+    """
+    任务类：创建压力中心统计表
+    继承自：osp.StudyTask
+
+    属性：
+    - study: 研究对象
+    - subjects: 参与者列表
+    - times: 时间点列表
+    - rise: 上升时间
+    - fall: 下降时间
+    - gravity: 重力加速度
+    - torques: 力矩列表
+    - subtalars: 相关的踝列表
+
+    方法：
+    - __init__(study, subjects, times): 初始化任务类
+    - create_cop_stats_table(file_dep, target): 创建压力中心统计表
+    """
+
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化任务类：创建压力中心统计表
+
+        参数：
+        - study: 研究对象
+        - subjects: 参与者列表
+        - times: 时间点列表
+        """
         super(TaskCreateCenterOfPressureStatisticsTables, self).__init__(study)
         self.name = f'create_center_of_pressure_statistics_tables'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -3775,7 +4668,13 @@ class TaskCreateCenterOfPressureStatisticsTables(osp.StudyTask):
         self.add_action(deps, targets, self.create_cop_stats_table)
 
     def create_cop_stats_table(self, file_dep, target):
+        """
+        创建压力中心统计表
 
+        参数：
+        - file_dep: 依赖文件列表
+        - target: 目标文件路径
+        """
         # Aggregate data
         # --------------
         import collections
@@ -3942,7 +4841,16 @@ class TaskCreateCenterOfPressureStatisticsTables(osp.StudyTask):
 
 class TaskCreateWholeBodyAngularMomentumStatisticsTables(osp.StudyTask):
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化任务类，创建整个身体角动量统计表的任务。
+
+        参数:
+        study: 研究对象，包含研究的配置信息。
+        subjects: 参与研究的受试者列表。
+        times: 研究中使用的时间点列表。
+        """
         super(TaskCreateWholeBodyAngularMomentumStatisticsTables, self).__init__(study)
         self.name = 'create_whole_body_angular_momentum_statistics_tables'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -4065,7 +4973,13 @@ class TaskCreateWholeBodyAngularMomentumStatisticsTables(osp.StudyTask):
         self.add_action(deps, targets, self.create_wbam_stats_table)
 
     def create_wbam_stats_table(self, file_dep, target):
+        """
+        创建整个身体角动量统计表。
 
+        参数:
+        file_dep: 依赖的文件列表。
+        target: 目标文件列表。
+        """
         # Aggregate data
         # --------------
         import collections
@@ -4229,7 +5143,15 @@ class TaskCreateWholeBodyAngularMomentumStatisticsTables(osp.StudyTask):
 
 class TaskRunStatistics(osp.StudyTask):
     REGISTRY = []
+    
     def __init__(self, study, times):
+        """
+        初始化任务类，运行统计分析的任务。
+
+        参数:
+        study: 研究对象，包含研究的配置信息。
+        times: 研究中使用的时间点列表。
+        """
         super(TaskRunStatistics, self).__init__(study)
         self.name = 'run_statistics'
         self.statistics_path = os.path.join(study.config['statistics_path'])
@@ -4242,6 +5164,13 @@ class TaskRunStatistics(osp.StudyTask):
         self.add_action([], [], self.run_whole_body_angular_momentum_stats)
 
     def run_center_of_mass_stats(self, file_dep, target):
+        """
+        运行质心统计分析。
+
+        参数:
+        file_dep: 依赖的文件列表。
+        target: 目标文件列表。
+        """
         normality_path = os.path.join(self.study.config['statistics_path'],
             'center_of_mass', 'normality')
         if not os.path.exists(normality_path): 
@@ -4257,6 +5186,13 @@ class TaskRunStatistics(osp.StudyTask):
             raise Exception('Non-zero exit status: code %s.' % p.returncode)
 
     def run_center_of_pressure_stats(self, file_dep, target):
+        """
+        运行压力中心统计分析。
+
+        参数:
+        file_dep: 依赖的文件列表。
+        target: 目标文件列表。
+        """
         normality_path = os.path.join(self.study.config['statistics_path'],
             'center_of_pressure', 'normality')
         if not os.path.exists(normality_path): 
@@ -4272,6 +5208,13 @@ class TaskRunStatistics(osp.StudyTask):
             raise Exception('Non-zero exit status: code %s.' % p.returncode)
 
     def run_whole_body_angular_momentum_stats(self, file_dep, target):
+        """
+        运行全身角动量统计分析。
+
+        参数:
+        file_dep: 依赖的文件列表。
+        target: 目标文件列表。
+        """
         normality_path = os.path.join(self.study.config['statistics_path'],
             'whole_body_angular_momentum', 'normality')
         if not os.path.exists(normality_path): 
@@ -4289,8 +5232,19 @@ class TaskRunStatistics(osp.StudyTask):
 
 
 class TaskAggregateCenterOfMassStatistics(osp.StudyTask):
+    """
+    聚合质心统计数据。
+    """
     REGISTRY = []
+    
     def __init__(self, study, times):
+        """
+        初始化 TaskAggregateCenterOfMassStatistics 类。
+
+        参数:
+        study (Study): 研究对象，包含实验的配置信息。
+        times (list): 关心的时间点列表。
+        """
         super(TaskAggregateCenterOfMassStatistics, self).__init__(study)
         self.name = f'aggregate_com_statistics_results'
         self.results_path = os.path.join(study.config['statistics_path'], 
@@ -4335,11 +5289,18 @@ class TaskAggregateCenterOfMassStatistics(osp.StudyTask):
                         self.aggregate_com_stats)
 
     def aggregate_com_stats(self, file_dep, target):
+        """
+        聚合质量中心统计数据。
 
+        参数:
+        file_dep (list): 依赖的文件列表。
+        target (list): 目标文件列表，用于保存聚合结果。
+        """
         idep = 0
         itarget = 0
 
         # Did all of the perturbations change the center-of-mass kinematics?
+        # 检查所有扰动是否改变了质量中心的运动学？
         for actu in ['muscles', 'torques']:
             for kin in ['pos', 'vel', 'acc']:
                 for direc in ['x', 'y', 'z']:
@@ -4381,6 +5342,7 @@ class TaskAggregateCenterOfMassStatistics(osp.StudyTask):
                     itarget += 1
 
         # Were the torque-driven perturbations different from the muscle-driven perturbations?
+        # 检查扭矩驱动的扰动是否与肌肉驱动的扰动不同？
         for kin in ['pos', 'vel', 'acc']:
             for direc in ['x', 'y', 'z']:
                 significances = list()
@@ -4433,8 +5395,35 @@ class TaskAggregateCenterOfMassStatistics(osp.StudyTask):
 
 
 class TaskAggregateCenterOfPressureStatistics(osp.StudyTask):
+    """
+    任务类：聚合压力中心统计数据。
+
+    属性:
+    REGISTRY (list): 注册的任务列表。
+    name (str): 任务名称。
+    results_path (str): 结果保存路径。
+    aggregate_path (str): 聚合结果保存路径。
+    times (list): 关心的时间点列表。
+    rise (float): 上升时间。
+    fall (float): 下降时间。
+    torques (list): 力矩列表。
+    subtalars (list): 侧踝列表。
+    multiindex_tuples (list): 多重索引元组列表。
+
+    方法:
+    __init__(study, times): 初始化任务类。
+    aggregate_cop_stats(file_dep, target): 聚合中心压力统计数据。
+    """
     REGISTRY = []
+    
     def __init__(self, study, times):
+        """
+        初始化 TaskAggregateCenterOfPressureStatistics 类。
+
+        参数:
+        study (Study): 研究对象，包含实验的配置信息。
+        times (list): 关心的时间点列表。
+        """
         super(TaskAggregateCenterOfPressureStatistics, self).__init__(study)
         self.name = f'aggregate_cop_statistics_results'
         self.results_path = os.path.join(study.config['statistics_path'], 
@@ -4479,7 +5468,13 @@ class TaskAggregateCenterOfPressureStatistics(osp.StudyTask):
                         self.aggregate_cop_stats)
 
     def aggregate_cop_stats(self, file_dep, target):
+        """
+        聚合压力中心统计数据。
 
+        参数:
+        file_dep (list): 依赖的文件列表。
+        target (list): 目标文件列表，用于保存统计结果。
+        """
         idep = 0
         itarget = 0
 
@@ -4578,8 +5573,35 @@ class TaskAggregateCenterOfPressureStatistics(osp.StudyTask):
 
 
 class TaskAggregateWholeBodyAngularMomentumStatistics(osp.StudyTask):
+    """
+    任务类：聚合全身角动量统计数据。
+
+    属性:
+    REGISTRY (list): 注册的任务列表。
+    name (str): 任务名称。
+    results_path (str): 结果文件路径。
+    aggregate_path (str): 聚合结果文件路径。
+    times (list): 时间点列表。
+    rise (float): 上升时间。
+    fall (float): 下降时间。
+    torques (list): 力矩列表。
+    subtalars (list): 副足部列表。
+    multiindex_tuples (list): 多重索引元组列表。
+
+    方法:
+    __init__(study, times): 初始化任务，设置路径和参数。
+    aggregate_wbam_stats(file_dep, target): 聚合全身角动量统计数据。
+    """
     REGISTRY = []
+    
     def __init__(self, study, times):
+        """
+        初始化 TaskAggregateWholeBodyAngularMomentumStatistics 类。
+
+        参数:
+        study (Study): 研究对象，包含实验的配置信息。
+        times (list): 关心的时间点列表。
+        """
         super(TaskAggregateWholeBodyAngularMomentumStatistics, self).__init__(study)
         self.name = 'aggregate_wbam_statistics_results'
         self.results_path = os.path.join(study.config['statistics_path'], 
@@ -4622,7 +5644,13 @@ class TaskAggregateWholeBodyAngularMomentumStatistics(osp.StudyTask):
                         self.aggregate_wbam_stats)
 
     def aggregate_wbam_stats(self, file_dep, target):
+        """
+        聚合全身角动量统计数据。
 
+        参数:
+        file_dep (list): 依赖的文件列表。
+        target (list): 目标文件列表，用于保存统计结果。
+        """
         idep = 0
         itarget = 0
 
@@ -4720,7 +5748,18 @@ class TaskAggregateWholeBodyAngularMomentumStatistics(osp.StudyTask):
 
 class TaskPlotCenterOfMassVector(osp.StudyTask):
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化 TaskPlotCenterOfMassVector 类的实例。
+
+        参数:
+        study: 研究对象，包含研究的配置信息。
+        subjects: 参与研究的受试者列表。
+        times: 时间点列表，用于分析。
+
+        返回值: None
+        """
         super(TaskPlotCenterOfMassVector, self).__init__(study)
         self.name = f'plot_center_of_mass_vector'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -4823,7 +5862,15 @@ class TaskPlotCenterOfMassVector(osp.StudyTask):
         self.add_action(deps, targets, self.plot_com_vectors)
 
     def plot_com_vectors(self, file_dep, target):
+        """
+        绘制质心向量的函数。
 
+        参数:
+        file_dep: 依赖的文件列表。
+        target: 目标文件列表，用于保存绘制的图形。
+
+        返回值: None
+        """
         # Globals
         # -------
         tick_fs = 6
@@ -5004,6 +6051,20 @@ class TaskPlotCenterOfMassVector(osp.StudyTask):
         # Plot helper functions
         # ---------------------
         def set_arrow_patch_sagittal(ax, x, y, dx, dy, actu, color):
+            """
+            在矢状面上绘制箭头。
+
+            参数:
+            ax: 目标坐标轴。
+            x: 箭头起始点的 x 坐标。
+            y: 箭头起始点的 y 坐标。
+            dx: 箭头在 x 方向的变化量。
+            dy: 箭头在 y 方向的变化量。
+            actu: 动作类型（肌肉或扭矩）。
+            color: 箭头颜色。
+
+            返回值: 绘制的箭头对象。
+            """
             if 'muscles' in actu:
                 arrowstyle = patches.ArrowStyle.CurveFilledB(head_length=0.25, 
                     head_width=0.1)
@@ -5020,6 +6081,20 @@ class TaskPlotCenterOfMassVector(osp.StudyTask):
             return arrow
 
         def set_arrow_patch_transverse(ax, x, y, dx, dy, actu, color):
+            """
+            在横向面上绘制箭头。
+
+            参数:
+            ax: 目标坐标轴。
+            x: 箭头起始点的 x 坐标。
+            y: 箭头起始点的 y 坐标。
+            dx: 箭头在 x 方向的变化量。
+            dy: 箭头在 y 方向的变化量。
+            actu: 动作类型（肌肉或扭矩）。
+            color: 箭头颜色。
+
+            返回值: 绘制的箭头对象。
+            """
             if 'muscles' in actu:
                 arrowstyle = patches.ArrowStyle.CurveFilledB(head_length=0.25, 
                     head_width=0.1)
@@ -5355,6 +6430,14 @@ class TaskPlotCenterOfMassVector(osp.StudyTask):
         
         import cv2
         def add_sagittal_image(fig):
+            """
+            在给定的图形中添加矢状面图像。
+
+            参数:
+            fig: 要添加图像的图形对象。
+
+            返回值: None
+            """
             side = 0.35
             offset = 0.01
             l = -0.01
@@ -5380,6 +6463,14 @@ class TaskPlotCenterOfMassVector(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_transverse_image(fig):
+            """
+            在给定的图形中添加横向面图像。
+
+            参数:
+            fig: 要添加图像的图形对象。
+
+            返回值: None
+            """
             side = 0.35
             offset = 0.02 
             l = ((1.0 - side) / 2.0) + offset
@@ -5405,6 +6496,17 @@ class TaskPlotCenterOfMassVector(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_legend(fig, x, y, transverse=False):
+            """
+            在给定的图形中添加图例。
+
+            参数:
+            fig: 要添加图例的图形对象。
+            x: 图例的 x 坐标。
+            y: 图例的 y 坐标。
+            transverse: 是否为横向图例。
+
+            返回值: None
+            """
             w = 0.1
             h = 0.02
             ax = fig.add_axes([x, y, w, h], projection=None, polar=False)
@@ -5461,8 +6563,23 @@ class TaskPlotCenterOfMassVector(osp.StudyTask):
 
 
 class TaskPlotInstantaneousCenterOfMass(osp.StudyTask):
+    """
+    瞬时质心绘制任务类。
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化 TaskPlotInstantaneousCenterOfMass 类的实例。
+
+        参数:
+        study: 研究对象，包含研究的配置信息。
+        subjects: 参与研究的受试者列表。
+        times: 时间点列表，用于分析和绘图。
+
+        返回值:
+        无
+        """
         super(TaskPlotInstantaneousCenterOfMass, self).__init__(study)
         self.name = f'plot_instantaneous_center_of_mass'
         self.figures_path = os.path.join(study.config['figures_path']) 
@@ -5574,7 +6691,16 @@ class TaskPlotInstantaneousCenterOfMass(osp.StudyTask):
         self.add_action(deps, targets, self.plot_instantaneous_com)
 
     def plot_instantaneous_com(self, file_dep, target):
+        """
+        绘制瞬时质心的图形。
 
+        参数:
+        file_dep: 依赖的文件列表。
+        target: 目标文件列表，用于保存绘制的图形。
+
+        返回值:
+        无
+        """
         # Initialize figures
         # ------------------
         from collections import defaultdict
@@ -5812,6 +6938,18 @@ class TaskPlotInstantaneousCenterOfMass(osp.StudyTask):
 
 
         def get_offsets(means, stds, lim, shift=0.0):
+            """
+            计算偏移量。
+
+            参数:
+            means: 均值数组。
+            stds: 标准差数组。
+            lim: 限制范围。
+            shift: 偏移量。
+
+            返回值:
+            偏移量数组。
+            """
             min_value = 0
             max_value = 0
 
@@ -6041,6 +7179,15 @@ class TaskPlotInstantaneousCenterOfMass(osp.StudyTask):
 
         import cv2
         def add_muscles_image(fig):
+            """
+            在图形中添加肌肉图像。
+
+            参数:
+            fig: 要添加图像的图形对象。
+
+            返回值:
+            无
+            """
             side = 0.175
             l = 0.23
             b = 0.81
@@ -6065,6 +7212,15 @@ class TaskPlotInstantaneousCenterOfMass(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_torques_image(fig):
+            """
+            在图形中添加扭矩图像。
+
+            参数:
+            fig: 要添加图像的图形对象。
+
+            返回值:
+            无
+            """
             side = 0.175
             l = 0.680
             b = 0.81
@@ -6111,8 +7267,27 @@ class TaskPlotInstantaneousCenterOfMass(osp.StudyTask):
 
 
 class TaskComputeCenterOfMassTimesteppingError(osp.StudyTask):
+    """
+    计算质心时间步进误差的任务类。
+
+    属性:
+    REGISTRY: 注册表，用于存储任务的注册信息。
+
+    方法:
+    __init__(study, subjects, times): 初始化任务，设置相关路径和参数。
+    compute_com_error(file_dep, target): 计算质心的时间步进误差并保存结果。
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化质心时间步进误差计算任务。
+
+        参数:
+        study: 当前研究对象。
+        subjects: 参与研究的对象列表。
+        times: 时间点列表。
+        """
         super(TaskComputeCenterOfMassTimesteppingError, self).__init__(study)
         self.name = f'compute_center_of_mass_timestepping_error'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -6168,7 +7343,13 @@ class TaskComputeCenterOfMassTimesteppingError(osp.StudyTask):
                         self.compute_com_error)
 
     def compute_com_error(self, file_dep, target):
+        """
+        计算质心的时间步进误差。
 
+        参数:
+        file_dep: 依赖的文件列表。
+        target: 目标文件路径，用于保存计算结果。
+        """
         # Aggregate data
         # --------------
         import collections
@@ -6260,12 +7441,31 @@ class TaskComputeCenterOfMassTimesteppingError(osp.StudyTask):
         # Compute errors
         # --------------
         def calc_rms_error(errors):
+            """
+            计算均方根误差。
+
+            参数:
+            errors: 误差数组。
+
+            返回值:
+            计算得到的均方根误差。
+            """
             N = len(errors)
             sq_errors = np.square(errors)
             sumsq_errors = np.sum(sq_errors)
             return np.sqrt(sumsq_errors / N) 
         
         def integrated_rms_error(vec, time):
+            """
+            计算积分均方根误差。
+
+            参数:
+            vec: 误差向量。
+            time: 时间向量。
+
+            返回值:
+            计算得到的积分均方根误差。
+            """
             interval = time[-1] - time[0]
             N = len(time)
 
@@ -6335,8 +7535,23 @@ class TaskComputeCenterOfMassTimesteppingError(osp.StudyTask):
 
 
 class TaskPlotCOMVersusCOP(osp.StudyTask):
+    """
+    质心与中心压力（COP）关系绘制任务类。
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects, times):
+        """
+        初始化 TaskPlotCOMVersusCOP 类的实例。
+
+        参数:
+        study -- 研究对象，包含配置和数据
+        subjects -- 参与研究的受试者列表
+        times -- 时间点列表
+
+        返回值:
+        无
+        """
         super(TaskPlotCOMVersusCOP, self).__init__(study)
         self.name = f'plot_com_versus_cop'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -6449,7 +7664,16 @@ class TaskPlotCOMVersusCOP(osp.StudyTask):
         self.add_action(deps, targets, self.com_versus_cop)
 
     def com_versus_cop(self, file_dep, target):
+        """
+        计算并绘制中心质量（COM）与中心压力（COP）之间的关系。
 
+        参数:
+        file_dep -- 依赖的文件列表
+        target -- 目标文件列表，用于保存结果
+
+        返回值:
+        无
+        """
         # Initialize figures
         # ------------------
         from collections import defaultdict
@@ -6686,6 +7910,15 @@ class TaskPlotCOMVersusCOP(osp.StudyTask):
 
         import cv2
         def add_muscles_image(fig):
+            """
+            在图形中添加肌肉图像。
+
+            参数:
+            fig -- 要添加图像的图形对象
+
+            返回值:
+            无
+            """
             side = 0.32
             l = 0.135
             b = 0.67
@@ -6710,6 +7943,15 @@ class TaskPlotCOMVersusCOP(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_torques_image(fig):
+            """
+            在图形中添加扭矩图像。
+
+            参数:
+            fig -- 要添加图像的图形对象
+
+            返回值:
+            无
+            """
             side = 0.32
             l = 0.60
             b = 0.67
@@ -6741,11 +7983,27 @@ class TaskPlotCOMVersusCOP(osp.StudyTask):
         fig.savefig(target[0], dpi=600)
         fig.savefig(target[1], dpi=600)
         plt.close()
+        plt.close()
+        plt.close()
 
 
 class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
+    """
+    任务类：绘制中心质量与峰值扭矩的关系图。
+
+    属性:
+    REGISTRY -- 任务注册表
+    """
     REGISTRY = []
+    
     def __init__(self, study, subjects):
+        """
+        初始化任务类。
+
+        参数:
+        study -- 研究对象
+        subjects -- 参与者列表
+        """
         super(TaskPlotCOMVersusPeakTorque, self).__init__(study)
         self.name = 'plot_com_versus_peak_torque'
         self.results_path = os.path.join(study.config['results_path'], 
@@ -6825,7 +8083,13 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
         self.add_action(deps, targets, self.com_versus_peak_torque)
 
     def com_versus_peak_torque(self, file_dep, target):
+        """
+        绘制中心质量与峰值扭矩的关系图。
 
+        参数:
+        file_dep -- 依赖文件列表
+        target -- 目标文件列表
+        """
         # Initialize figures
         # ------------------
         import collections
@@ -6867,8 +8131,6 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
                 ax.spines['bottom'].set_position(('outward', 10))
                 axes_list.append(ax)
 
-
-    
             axes[kin] = axes_list
 
         # Aggregate data
@@ -6920,7 +8182,6 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
                 unpTableCOM_np[:, 8] = unpTableCOM.getDependentColumn(
                     '/|com_acceleration_z').to_numpy()
 
-
                 for torque, subtalar in zip(self.torques, self.subtalars):
 
                     # Perturbed center-of-mass trajectory
@@ -6958,6 +8219,17 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
                     time_dict[subject][label] = timeVecCOM
 
         def compute_norm(x, y, z):
+            """
+            计算三维向量的范数。
+
+            参数:
+            x -- x坐标
+            y -- y坐标
+            z -- z坐标
+
+            返回值:
+            三维向量的范数
+            """
             return np.sqrt(x*x + y*y + z*z)
 
         # Plotting
@@ -7011,7 +8283,6 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
                 acc_diff_mean[itime, itorque] = np.mean(acc_diff[itime, itorque, :])
                 acc_diff_std[itime, itorque] = np.std(acc_diff[itime, itorque, :]) 
 
-
         acc_step = 0.02
         vel_step = 0.005
         pos_step = 0.001
@@ -7029,7 +8300,6 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
             zipped = zip(self.torques, self.subtalars, self.colors)
             for itorque, (torque, subtalar, color) in enumerate(zipped):
                 perturbation = f'perturbed_torque{torque}{subtalar}'
-
 
                 ple, cle, ble = axes['acc'][itime].errorbar(
                     itorque, 
@@ -7050,7 +8320,6 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
                 axes['acc'][itime].set_ylim(acc_lim)
                 axes['acc'][itime].set_yticks(get_ticks_from_lims(acc_lim, acc_step))
 
-
                 ple, cle, ble = axes['vel'][itime].errorbar(
                     itorque, 
                     vel_diff_mean[itime, itorque], 
@@ -7069,7 +8338,6 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
                     axes['vel'][itime].set_ylabel(r'$\Delta$' + ' COM velocity $[-]$')
                 axes['vel'][itime].set_ylim(vel_lim)
                 axes['vel'][itime].set_yticks(get_ticks_from_lims(vel_lim, vel_step))
-
 
                 ple, cle, ble = axes['pos'][itime].errorbar(
                     itorque, 
@@ -7105,8 +8373,28 @@ class TaskPlotCOMVersusPeakTorque(osp.StudyTask):
 # ------------------
 
 class TaskPlotCenterOfPressureVector(osp.StudyTask):
+    """
+    任务类：绘制压力中心向量的图形。
+
+    属性:
+    REGISTRY -- 任务注册表
+    study -- 研究对象，包含配置和数据
+    subjects -- 参与研究的受试者列表
+    times -- 时间点列表
+
+    方法:
+    __init__(study, subjects, times) -- 初始化任务，设置相关路径和参数。
+    """
     REGISTRY = []
     def __init__(self, study, subjects, times):
+        """
+        初始化任务，设置相关路径和参数。
+
+        参数:
+        study -- 研究对象，包含配置和数据
+        subjects -- 参与研究的受试者列表
+        times -- 时间点列表
+        """
         super(TaskPlotCenterOfPressureVector, self).__init__(study)
         self.name = f'plot_center_of_pressure_vector'
         self.figures_path = os.path.join(study.config['figures_path']) 
@@ -7202,6 +8490,13 @@ class TaskPlotCenterOfPressureVector(osp.StudyTask):
             self.plot_cop_vectors)
 
     def plot_cop_vectors(self, file_dep, target):
+        """
+        绘制压力中心向量图。
+
+        参数:
+        file_dep -- 依赖文件列表
+        target -- 目标文件列表
+        """
 
         # Globals
         # -------
@@ -7412,6 +8707,12 @@ class TaskPlotCenterOfPressureVector(osp.StudyTask):
 
         import cv2
         def add_transverse_image(fig):
+            """
+            添加足部图像。
+
+            参数:
+            fig -- 图形对象
+            """
             side = 0.35
             offset = 0.0275
             l = ((1.0 - side) / 2.0) + offset
@@ -7437,6 +8738,14 @@ class TaskPlotCenterOfPressureVector(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_legend(fig, x, y):
+            """
+            添加图例。
+
+            参数:
+            fig -- 图形对象
+            x -- 图例位置的x坐标
+            y -- 图例位置的y坐标
+            """
             w = 0.1
             h = 0.02
             ax = fig.add_axes([x, y, w, h], projection=None, polar=False)
@@ -7469,8 +8778,22 @@ class TaskPlotCenterOfPressureVector(osp.StudyTask):
 
 
 class TaskPlotInstantaneousCenterOfPressure(osp.StudyTask):
+    """
+    任务类：绘制瞬时中心压力图。
+
+    属性:
+    REGISTRY -- 任务注册表
+    """
     REGISTRY = []
     def __init__(self, study, subjects, times):
+        """
+        初始化任务，设置相关路径和参数。
+
+        参数:
+        study -- 研究对象，包含配置和数据
+        subjects -- 参与研究的受试者列表
+        times -- 时间点列表
+        """
         super(TaskPlotInstantaneousCenterOfPressure, self).__init__(study)
         self.name = f'plot_instantaneous_center_of_pressure'
         self.figures_path = os.path.join(study.config['figures_path']) 
@@ -7581,6 +8904,13 @@ class TaskPlotInstantaneousCenterOfPressure(osp.StudyTask):
         self.add_action(deps, targets, self.plot_instantaneous_cop)
 
     def plot_instantaneous_cop(self, file_dep, target):
+        """
+        绘制瞬时中心压力图。
+
+        参数:
+        file_dep -- 依赖文件列表
+        target -- 目标文件列表
+        """
 
         # Initialize figures
         # ------------------
@@ -7730,6 +9060,18 @@ class TaskPlotInstantaneousCenterOfPressure(osp.StudyTask):
 
 
         def get_offsets(means, stds, lim, shift=0.0):
+            """
+            获取偏移量。
+
+            参数:
+            means -- 均值
+            stds -- 标准差
+            lim -- 限制范围
+            shift -- 偏移量
+
+            返回值:
+            偏移量
+            """
             min_value = 0
             max_value = 0
 
@@ -7813,6 +9155,12 @@ class TaskPlotInstantaneousCenterOfPressure(osp.StudyTask):
 
         import cv2
         def add_muscles_image(fig):
+            """
+            添加肌肉图像。
+
+            参数:
+            fig -- 图形对象
+            """
             side = 0.175
             l = 0.23
             b = 0.81
@@ -7837,6 +9185,12 @@ class TaskPlotInstantaneousCenterOfPressure(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_torques_image(fig):
+            """
+            添加扭矩图像。
+
+            参数:
+            fig -- 图形对象
+            """
             side = 0.175
             l = 0.680
             b = 0.81
@@ -7875,8 +9229,22 @@ class TaskPlotInstantaneousCenterOfPressure(osp.StudyTask):
 # ---------------------------
 
 class TaskPlotInstantaneousWholeBodyAngularMomentum(osp.StudyTask):
+    """
+    任务类：绘制瞬时全身角动量图。
+
+    属性:
+    REGISTRY -- 任务注册表
+    """
     REGISTRY = []
     def __init__(self, study, subjects, times):
+        """
+        初始化任务，设置相关路径和参数。
+
+        参数:
+        study -- 研究对象，包含配置和数据
+        subjects -- 参与研究的受试者列表
+        times -- 时间点列表
+        """
         super(TaskPlotInstantaneousWholeBodyAngularMomentum, self).__init__(study)
         self.name = f'plot_instantaneous_whole_body_angular_momentum'
         self.figures_path = os.path.join(study.config['figures_path']) 
@@ -7995,6 +9363,13 @@ class TaskPlotInstantaneousWholeBodyAngularMomentum(osp.StudyTask):
         self.add_action(deps, targets, self.plot_instantaneous_wbam)
 
     def plot_instantaneous_wbam(self, file_dep, target):
+        """
+        绘制瞬时全身角动量图。
+
+        参数:
+        file_dep -- 依赖文件列表
+        target -- 目标文件列表
+        """
 
         # Initialize figures
         # ------------------
@@ -8159,6 +9534,18 @@ class TaskPlotInstantaneousWholeBodyAngularMomentum(osp.StudyTask):
 
 
         def get_offsets(means, stds, lim, shift=0.0):
+            """
+            获取偏移量。
+
+            参数:
+            means -- 均值
+            stds -- 标准差
+            lim -- 限制范围
+            shift -- 偏移量
+
+            返回值:
+            偏移量
+            """
             min_value = 0
             max_value = 0
 
@@ -8261,6 +9648,12 @@ class TaskPlotInstantaneousWholeBodyAngularMomentum(osp.StudyTask):
 
         import cv2
         def add_muscles_image(fig):
+            """
+            添加肌肉图像。
+
+            参数:
+            fig -- 图形对象
+            """
             side = 0.175
             l = 0.23
             b = 0.81
@@ -8285,6 +9678,12 @@ class TaskPlotInstantaneousWholeBodyAngularMomentum(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_torques_image(fig):
+            """
+            添加扭矩图像。
+
+            参数:
+            fig -- 图形对象
+            """
             side = 0.175
             l = 0.680
             b = 0.81
@@ -8324,8 +9723,22 @@ class TaskPlotInstantaneousWholeBodyAngularMomentum(osp.StudyTask):
 # -------------------------
 
 class TaskCreatePerturbationPowersTable(osp.StudyTask):
+    """
+    任务类：创建外骨骼辅助的功率表。
+
+    属性:
+    REGISTRY -- 任务注册表
+    """
     REGISTRY = []
     def __init__(self, study, subjects, torque_actuators=False):
+        """
+        初始化任务，设置相关路径和参数。
+
+        参数:
+        study -- 研究对象，包含配置和数据
+        subjects -- 参与研究的受试者列表
+        torque_actuators -- 是否使用扭矩外骨骼
+        """
         super(TaskCreatePerturbationPowersTable, self).__init__(study)
         self.subjects = subjects
         self.times = study.times
@@ -8396,6 +9809,13 @@ class TaskCreatePerturbationPowersTable(osp.StudyTask):
                         self.create_perturbation_powers_table)
 
     def create_perturbation_powers_table(self, file_dep, target):
+        """
+        创建外骨骼辅助的功率表。
+
+        参数:
+        file_dep -- 依赖文件列表
+        target -- 目标文件列表
+        """
 
         from scipy.interpolate import interp1d
         def compute_power(torque, speed, torqueTime, speedTime, onsetTime, offsetTime):
@@ -8560,8 +9980,21 @@ class TaskCreatePerturbationPowersTable(osp.StudyTask):
 
 
 class TaskPlotPerturbationPowers(osp.StudyTask):
+    """
+    任务类：绘制外骨骼辅助的功率图。
+
+    属性:
+    REGISTRY -- 任务注册表
+    """
     REGISTRY = []
     def __init__(self, study, subjects):
+        """
+        初始化任务，设置相关路径和参数。
+
+        参数:
+        study -- 研究对象，包含配置和数据
+        subjects -- 参与研究的受试者列表
+        """
         super(TaskPlotPerturbationPowers, self).__init__(study)
         self.name = 'plot_perturbation_powers'
         self.subjects = subjects
@@ -8607,6 +10040,13 @@ class TaskPlotPerturbationPowers(osp.StudyTask):
                         self.plot_perturbation_powers)
 
     def plot_perturbation_powers(self, file_dep, target):
+        """
+        绘制外骨骼辅助的功率图。
+
+        参数:
+        file_dep -- 依赖文件列表
+        target -- 目标文件列表
+        """
 
         # Initialize figures
         # ------------------
@@ -8777,6 +10217,12 @@ class TaskPlotPerturbationPowers(osp.StudyTask):
 
         import cv2
         def add_muscles_image(fig):
+            """
+            添加肌肉图像。
+
+            参数:
+            fig -- 图形对象
+            """
             side = 0.175
             l = 0.245
             b = 0.81
@@ -8801,6 +10247,12 @@ class TaskPlotPerturbationPowers(osp.StudyTask):
                            top=False, labelbottom=False)
 
         def add_torques_image(fig):
+            """
+            添加扭矩图像。
+
+            参数:
+            fig -- 图形对象
+            """
             side = 0.175
             l = 0.680
             b = 0.81
@@ -8831,4 +10283,5 @@ class TaskPlotPerturbationPowers(osp.StudyTask):
             fig.savefig(target[ifig], dpi=600)
 
         figs[0].savefig(target[2], dpi=600)
+        plt.close()
         plt.close()

@@ -20,6 +20,28 @@ forceNamesLeftFoot = ['forceset/contactHeel_l',
                       'forceset/contactMedialMidfoot_l']
 
 class TrackingConfig:
+    """
+    TrackingConfig 类用于配置跟踪问题的参数。
+    参数:
+    name (str): 配置名称。
+    legend_entry (str): 图例条目。
+    color (str): 配置颜色。
+    weights (dict): 成本函数权重，包括 'control_weight', 'state_tracking_weight', 
+                    'grf_tracking_weight', 'torso_orientation_weight', 
+                    'feet_orientation_weight', 'control_tracking_weight', 
+                    'aux_deriv_weight', 'acceleration_weight'。
+    guess (optional): 初始猜测值。
+    effort_enabled (bool): 是否启用代价跟踪。默认值为 True。
+    tracking_enabled (bool): 是否启用状态跟踪。默认值为 True。
+    periodic (bool): 是否启用周期性。默认值为 False。
+    periodic_coordinates_to_include (optional): 要包括的周期性坐标。
+    periodic_actuators (bool): 是否启用周期性执行器。默认值为 True。
+    periodic_values (bool): 是否启用周期性值。默认值为 True。
+    periodic_speeds (bool): 是否启用周期性速度。默认值为 True。
+    lumbar_stiffness (float): 腰部刚度缩放。默认值为 1.0。
+    randomize_guess (bool): 是否随机化初始猜测。默认值为 False。
+    create_and_insert_guess (bool): 如果提供的猜测与当前 MocoProblem 不完全匹配，但仍希望使用匹配的信息，则启用此标志。默认值为 False。
+    """
     def __init__(self, name, legend_entry, color, weights, guess=None, 
                  effort_enabled=True, tracking_enabled=True,
                  periodic=False,
@@ -69,6 +91,33 @@ class TrackingConfig:
         self.create_and_insert_guess = create_and_insert_guess
 
 class TrackingProblem(Result):
+    """
+    TrackingProblem类继承自Result类，用于处理跟踪问题。
+    参数:
+    root_dir (str): 根目录路径。
+    result_fpath (str): 结果文件路径。
+    model_fpath (str): 模型文件路径。
+    coordinates_fpath (str): 坐标文件路径。
+    coordinates_std_fpath (str): 坐标标准文件路径。
+    extloads_fpath (str): 外部负载文件路径。
+    grf_fpath (str): 地面反作用力文件路径。
+    emg_fpath (str): 肌电图文件路径。
+    initial_time (float): 初始时间。
+    final_time (float): 结束时间。
+    cycles (int): 循环次数。
+    right_strikes (list): 右脚着地时间列表。
+    left_strikes (list): 左脚着地时间列表。
+    mesh_interval (float): 网格间隔。
+    convergence_tolerance (float): 收敛容差。
+    constraint_tolerance (float): 约束容差。
+    num_max_iterations (int): 最大迭代次数。
+    walking_speed (float): 行走速度。
+    configs (list): 配置列表。
+    skip_solve (bool): 是否跳过求解。
+    reserve_strength (float): 预留强度。
+    implicit_multibody_dynamics (bool): 是否使用隐式多体动力学。
+    implicit_tendon_dynamics (bool): 是否使用隐式肌腱动力学。
+    """
     def __init__(self, root_dir, result_fpath, model_fpath, coordinates_fpath, 
             coordinates_std_fpath, extloads_fpath, grf_fpath, emg_fpath, 
             initial_time, final_time, cycles, right_strikes, left_strikes, 
@@ -78,6 +127,18 @@ class TrackingProblem(Result):
             reserve_strength=0,
             implicit_multibody_dynamics=False,
             implicit_tendon_dynamics=False):
+        """
+        初始化 TrackingProblem 类。
+        参数:
+        root_dir (str): 根目录路径。
+        result_fpath (str): 结果文件路径。
+        model_fpath (str): 模型文件路径。
+        coordinates_fpath (str): 坐标文件路径。
+        coordinates_std_fpath (str): 坐标标准文件路径。
+        extloads_fpath (str): 外部负载文件路径。
+        grf_fpath (str): 地面反作用力文件路径。
+        emg_fpath (str): 肌电图文件路径。
+        """
         super(TrackingProblem, self).__init__()
         self.root_dir = root_dir
         self.result_fpath = result_fpath
@@ -104,6 +165,11 @@ class TrackingProblem(Result):
         self.implicit_tendon_dynamics = implicit_tendon_dynamics
 
     def create_torso_tracking_reference(self, config):
+        """
+        创建躯干部分跟踪参考。
+        参数:
+        config (TrackingConfig): 配置对象。
+        """
         modelProcessor = self.create_model_processor(config)
         model = modelProcessor.process()
         model.initSystem()
@@ -129,7 +195,11 @@ class TrackingProblem(Result):
                 'torso_zero_reference.sto'))
 
     def get_state_bounds(self, config):
-
+        """
+        获取状态边界。
+        参数:
+        config (TrackingConfig): 配置对象。
+        """
         # State bounds
         # ------------
         pi = np.pi
@@ -164,10 +234,19 @@ class TrackingProblem(Result):
         return stateBounds
 
     def create_model_processor(self, config):
+        """
+        创建模型处理器。
+        参数:
+        config (TrackingConfig): 配置对象。
+        """
         return self.create_model_processor_base(config)
 
     def run_tracking_problem(self, config):
-
+        """
+        运行跟踪问题。
+        参数:
+        config (TrackingConfig): 配置对象。
+        """
         # Create the model for this tracking config
         # -----------------------------------------
         modelProcessor = self.create_model_processor(config)        
@@ -595,12 +674,17 @@ class TrackingProblem(Result):
                 self.get_solution_archive_path_grfs(config.name))
 
     def generate_results(self):
+        """
+        生成结果。
+        """
         for config in self.configs:
             self.create_torso_tracking_reference(config)
             self.run_tracking_problem(config)
 
     def report_results(self):
-
+        """
+        报告结果。
+        """
         # Store a list of models
         # ----------------------
         models = list()

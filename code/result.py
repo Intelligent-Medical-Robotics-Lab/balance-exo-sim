@@ -14,13 +14,16 @@ from utilities import simtk2numpy
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 
+# Result 类是一个抽象基类（Abstract Base Class），它继承自 ABC。
+# 在 Python 中，抽象基类用于定义接口或基类，不能直接实例化。
+# 抽象基类通常包含一个或多个抽象方法，这些方法必须在子类中实现。
 class Result(ABC):
     def __init__(self):
         # Global plotting properties
         # --------------------------
         self.exp_color = 'gray'
         self.lw = 2
-
+    # 这种是抽象函数
     @abstractmethod
     def generate_results(self):
         pass
@@ -29,6 +32,7 @@ class Result(ABC):
     def report_results(self):
         pass
 
+    # 创建一个有效的文件路径
     def create_valid_path(self, path):
         path = f'{path}'
         path = path.replace(' ', '')
@@ -36,36 +40,38 @@ class Result(ABC):
         path = path.replace('.', '_')
         return path
 
+    # 获取结果路径
     def get_solution_path(self, name):
         return os.path.join(f'{self.result_fpath}',
                             f'{name}.sto')
 
+    # 获取实验状态文件的路径
     def get_experiment_states_path(self, name):
         return os.path.join(f'{self.result_fpath}',
                             f'{name}_experiment_states.sto') 
-
+    # 获取结果归档路径
     def get_solution_archive_path(self, name):
         now = datetime.datetime.now()
         now.strftime('%Y-%m-%dT%H:%M:%S')
         now = self.create_valid_path(now)
         return os.path.join(f'{self.result_fpath}', 'archive',
                             f'{name}_{now}.sto')
-
+    # 获取grf结果路径
     def get_solution_path_grfs(self, name):
         return os.path.join(f'{self.result_fpath}',
                             f'{name}_grfs.sto')
-
+    # 获取接触结果路径
     def get_solution_path_contacts(self, name):
         return os.path.join(f'{self.result_fpath}',
                             f'{name}_contacts.sto')
-
+    # 获取grf归档文件路径
     def get_solution_archive_path_grfs(self, name):
         now = datetime.datetime.now()
         now.strftime('%Y-%m-%dT%H:%M:%S')
         now = self.create_valid_path(now)
         return os.path.join(f'{self.result_fpath}', 'archive',
                             f'{name}_grfs_{now}.sto')
-
+    # 读取表格
     def load_table(self, table_path):
         num_header_rows = 1
         with open(table_path) as f:
@@ -76,7 +82,7 @@ class Result(ABC):
                     break
         return np.genfromtxt(table_path, names=True, delimiter='\t',
                              skip_header=num_header_rows)
-
+    # 创建基本的模型处理器
     def create_model_processor_base(self, config):
 
         osim.Logger.setLevelString('error')
@@ -185,7 +191,7 @@ class Result(ABC):
         osim.Logger.setLevelString('info')
 
         return modelProcessor
-
+    # 计算负肌肉力（基函数）
     def calc_negative_muscle_forces_base(self, model, solution):
         model.initSystem()
         outputs = osim.analyze(model, solution.exportToStatesTable(),
@@ -216,7 +222,7 @@ class Result(ABC):
             print(f'Largest negative force: {muscle_names[imin]} '
                   f'with {negforces[imin]} F_iso')
         return min([0] + negforces)
-
+    # 计算肌肉力学
     def calc_muscle_mechanics(self, config, model, solution):
         outputList = list()
         for output in ['normalized_fiber_length', 'normalized_fiber_velocity', 
@@ -237,13 +243,13 @@ class Result(ABC):
 
         return outputs
 
-
+    # 计算负肌肉力
     def calc_negative_muscle_forces(self, config, model, solution):
         print(f'Negative force report for {config.name}:')
         model.initSystem()
         return self.calc_negative_muscle_forces_base(model, solution)
 
-
+    # 创建接触球力表
     def create_contact_sphere_force_table(self, model, solution):
 
         model.initSystem()
@@ -353,7 +359,7 @@ class Result(ABC):
 
         return externalForcesTable.flatten(suffixes), copTable
 
-    
+    # 创建步态外部载荷表
     def create_external_loads_table_for_gait(self, model,
             solution, forcePathsRightFoot, forcePathsLeftFoot,
             copTable):
@@ -426,7 +432,7 @@ class Result(ABC):
         suffixes.append('z')
 
         return externalForcesTable.flatten(suffixes)
-
+    # 保存图片
     def savefig(self, fig, filename):
         fig.savefig(filename + ".png", format="png", dpi=600)
 
@@ -436,7 +442,7 @@ class Result(ABC):
         # Save as TIFF
         png2.save(filename + ".tiff", compression='tiff_lzw')
 
-
+    # 绘制地面反作用力
     def plot_ground_reactions(self, models):
 
         # Bodyweight
@@ -541,7 +547,7 @@ class Result(ABC):
         fig_grf.savefig(os.path.join(self.result_fpath, 
             'ground_reaction_forces.png'), dpi=600)
 
-
+    # 绘制关节运动学
     def plot_joint_kinematics(self, models):
 
         # Initialize figures
@@ -704,7 +710,7 @@ class Result(ABC):
         fig_kin.savefig(os.path.join(self.result_fpath, 
                 'joint_kinematics.png'), dpi=600)
 
-
+    # 绘制肌肉激活
     def plot_muscle_activations(self, models):
 
         # Initialize figures
@@ -798,7 +804,7 @@ class Result(ABC):
                 'muscle_activations.png'), dpi=600)
         plt.close('all')
 
-
+    # 绘制肌肉力学
     def plot_muscle_mechanics(self, muscle_mechanics, output):
 
         # Initialize figures
@@ -892,7 +898,7 @@ class Result(ABC):
                 f'{output}.png'), dpi=600)
         plt.close('all')
 
-
+    # 绘制质心
     def plot_center_of_mass(self, models):
 
         # Initialize figures
@@ -1070,7 +1076,7 @@ class Result(ABC):
             'center_of_mass.png'), dpi=600)
         plt.close()
 
-
+    # 创建pdf报告
     def create_pdf_report(self, models, configs):
         trajectory_filepath = self.get_solution_path(configs[-1].name)
         ref_files = list()

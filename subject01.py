@@ -4,6 +4,7 @@ import osimpipeline as osp
 import tasks
 import helpers
 
+# 用于设置缩放
 def scale_setup_fcn(util, mset, sset, ikts):
 
     m = util.Measurement('torso', mset)
@@ -124,14 +125,19 @@ def add_to_study(study):
     
     # Add subject to study
     # --------------------
+    # 添加subject到study中，参数为：subject编号、体重、身高
     subject = study.add_subject(1, 72.84, 1.808)
 
+    # 条件参数
     cond_args = dict()
     subject.cond_args = cond_args
 
+    # 添加静态条件
     static = subject.add_condition('static')
+    # 添加静态条件下的试验
     static_trial = static.add_trial(1, omit_trial_dir=True)
 
+    # 设置缩放任务，参数为：初始时间、结束时间、运动学试验、缩放函数、额外文件依赖
     # `os.path.basename(__file__)` should be `subject01.py`.
     scale_setup_task = subject.add_task(osp.TaskScaleSetup,
             init_time=0,
@@ -144,55 +150,75 @@ def add_to_study(study):
             scale_setup_task=scale_setup_task,
             ignore_unused_markers=True)
 
+    # 根据体重和身高缩放肌肉最大等长力
     # Scale max isometric forces based on mass and height
     # ---------------------------------------------------
+    # 复制模型段质量
     subject.add_task(tasks.TaskCopyModelSegmentMasses)
+    # 缩放肌肉最大等长力
     subject.add_task(tasks.TaskScaleMuscleMaxIsometricForce)
+    # 设置缩放模型文件路径
     subject.scaled_model_fpath = os.path.join(subject.results_exp_path,
         f'{subject.name}_final.osim')
+    # 设置仿真模型文件路径，就是用缩放后的模型
     subject.sim_model_fpath = os.path.join(subject.results_exp_path,
         f'{subject.name}_final.osim')
 
+    # 添加正常行走条件
     # walk2 condition
     # ---------------
     walk2 = subject.add_condition('walk2', metadata={'walking_speed': 1.25})
-    
+
+    # 添加正常行走试验
     # Trial to use
+    # 数据中正常行走事件时间点
     gait_events = dict()
     gait_events['right_strikes'] = [1.18, 2.28, 3.38, 4.49] 
     gait_events['left_toeooffs'] = [1.36, 2.46, 3.56]
     gait_events['left_strikes'] = [1.73, 2.83, 3.94] 
     gait_events['right_toeoffs'] = [1.92, 3.02, 4.12]
 
+    # 添加正常行走试验，试验编号为1，包含行走事件时间点，省略试验目录
     walk2_trial = walk2.add_trial(1,
             gait_events=gait_events,
             omit_trial_dir=True,
             )
+    # 增加任务：更新地面反作用力标签
     walk2_trial.add_task(tasks.TaskUpdateGroundReactionLabels)
+    # 增加任务：过滤地面反作用力
     walk2_trial.add_task(tasks.TaskFilterGroundReactions)
+    # 增加任务：生成地面反作用力步态标记
     walk2_trial.add_task(osp.TaskGRFGaitLandmarks, min_time=0.5, max_time=5.0)
 
+    # 生成主任务：生成逆运动学和逆动力学任务
     # Inverse kinematics and inverse dynamics
     ik_setup_task, id_setup_task = helpers.generate_main_tasks(walk2_trial)
 
+    # 设置选定实验室数据的初始时间、结束时间、步态事件时间点
     initial_time = 3.38
     final_time = 4.49
     duration = 1.11
+    # 右脚事件时间点
     right_strikes = [3.38, 4.49]
+    # 左脚事件时间点
     left_strikes = [3.94]
+    # 增加任务：计算关节角度标准差
     walk2_trial.add_task(
         tasks.TaskComputeJointAngleStandardDeviations, 
         ik_setup_task)
+    # 增加任务：修剪跟踪数据
     walk2_trial.add_task(
         tasks.TaskTrimTrackingData, 
         ik_setup_task, id_setup_task, 
         initial_time, final_time)
 
+    # 增加任务：生成未扰动正常行走任务
     # unperturbed walking tasks
     # -------------------------
     helpers.generate_unperturbed_tasks(study, subject, walk2_trial, 
         initial_time, final_time)
 
+    # 增加任务：生成外骨骼辅助行走任务
     # perturbed walking tasks
     # -----------------------
     helpers.generate_perturbed_tasks(study, subject, walk2_trial, 
